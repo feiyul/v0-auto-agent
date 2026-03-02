@@ -6,13 +6,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { CheckCircle2, Edit3, AlertCircle, Sparkles, ArrowUp, MessageSquare, ListChecks } from "lucide-react"
-import type { PendingTask, WorkflowStep } from "@/app/page"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { CheckCircle2, Edit3, AlertCircle, Sparkles, ArrowUp, MessageSquare, ListChecks, Play, Calendar, FileText, Database } from "lucide-react"
+import type { PendingTask, WorkflowStep, OptimizationParams, OptimizationMethod } from "@/app/page"
 
 interface HumanCollaborationProps {
   pendingTasks: PendingTask[]
   onTaskComplete: (taskId: string, result: string, additionalInput?: string) => void
   onChatMessage: (message: string) => void
+  onStartWorkflow: (params: OptimizationParams) => void
   currentStep: WorkflowStep
   isProcessing: boolean
 }
@@ -35,17 +39,18 @@ const stepLabels: Record<WorkflowStep, string> = {
   optimization: "智能优化",
 }
 
-const WELCOME_MESSAGE = "您好！我是智能优化助手。点击「开始优化」启动流程后，我会在关键节点请求您的确认和反馈。您也可以随时在对话中提出问题或修改意见。"
+const WELCOME_MESSAGE = "您好！我是智能优化助手。请先配置优化参数并点击「开始优化」启动流程，我会在关键节点请求您的确认和反馈。"
 
 export function HumanCollaboration({
   pendingTasks,
   onTaskComplete,
   onChatMessage,
+  onStartWorkflow,
   currentStep,
   isProcessing,
 }: HumanCollaborationProps) {
   const [mounted, setMounted] = useState(false)
-  const [mode, setMode] = useState<InteractionMode>("chat")
+  const [mode, setMode] = useState<InteractionMode>("form")
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState("")
   const [taskInputs, setTaskInputs] = useState<Record<string, string>>({})
@@ -54,6 +59,13 @@ export function HumanCollaboration({
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const processedTaskIds = useRef<Set<string>>(new Set())
+
+  // Start form state
+  const [optimizationMethod, setOptimizationMethod] = useState<OptimizationMethod>("daily-report")
+  const [dailyDate, setDailyDate] = useState("")
+  const [businessScenario, setBusinessScenario] = useState("")
+  const [sessionIds, setSessionIds] = useState("")
+  const [manualAnalysis, setManualAnalysis] = useState("")
 
   useEffect(() => {
     setMounted(true)
@@ -96,6 +108,28 @@ export function HumanCollaboration({
     }
   }, [chatInput])
 
+  const handleStartOptimization = () => {
+    const params: OptimizationParams = {
+      method: optimizationMethod,
+      date: dailyDate,
+      businessScenario,
+      sessionIds,
+      manualAnalysis,
+    }
+    onStartWorkflow(params)
+
+    // Add start message to chat
+    const startMessage: ChatMessage = {
+      id: `start-${Date.now()}`,
+      role: "assistant",
+      content: optimizationMethod === "daily-report"
+        ? `已启动优化流程。\n\n**优化方式**: 基于日报优化\n**日期**: ${dailyDate || "今日"}\n**业务场景**: ${businessScenario || "全部场景"}\n\n正在进行场景问题分析...`
+        : `已启动优化流程。\n\n**优化方式**: 基于具体BadCase优化\n**SessionId**: ${sessionIds}\n${manualAnalysis ? `**人工分析**: ${manualAnalysis}` : ""}\n\n正在进行问题分析...`,
+      timestamp: new Date(),
+    }
+    setChatMessages((prev) => [...prev, startMessage])
+  }
+
   const handleSendChat = () => {
     if (!chatInput.trim()) return
 
@@ -128,7 +162,7 @@ export function HumanCollaboration({
       return "这是一个好问题。基于当前的分析数据，我建议采用这种方案是因为它能更好地平衡响应速度和准确性。您可以在卡片中选择不同的优化方向。"
     }
     if (step === "idle") {
-      return "请点击「开始优化」按钮启动优化流程。我会在需要您决策时发送确认卡片。"
+      return "请先配置优化参数，然后点击「开始优化」按钮启动流程。"
     }
     if (step === "analysis") {
       return "当前正在进行场景分析。分析完成后，我会发送确认卡片请您审核结果。如有特定关注点，请提前告诉我。"
@@ -281,15 +315,154 @@ export function HumanCollaboration({
     )
   }
 
+  // Start Form Component
+  const renderStartForm = () => {
+    const canStart = optimizationMethod === "daily-report" 
+      ? true // date is optional
+      : sessionIds.trim().length > 0
+
+    return (
+      <Card className="border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-sm rounded-2xl overflow-hidden">
+        <CardHeader className="pb-3 pt-4 px-4">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Play className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-semibold text-foreground">开始优化</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">配置优化参数并启动流程</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-4 px-4 pb-4">
+          {/* Optimization Method */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-foreground">优化方式</Label>
+            <RadioGroup
+              value={optimizationMethod}
+              onValueChange={(v) => setOptimizationMethod(v as OptimizationMethod)}
+              className="flex gap-2"
+            >
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all",
+                  optimizationMethod === "daily-report" 
+                    ? "border-primary/40 bg-primary/5" 
+                    : "border-border/50 hover:border-border"
+                )}
+                onClick={() => setOptimizationMethod("daily-report")}
+              >
+                <RadioGroupItem value="daily-report" id="daily-report" className="h-3.5 w-3.5" />
+                <Label htmlFor="daily-report" className="text-xs cursor-pointer flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  基于日报优化
+                </Label>
+              </div>
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all",
+                  optimizationMethod === "badcase" 
+                    ? "border-primary/40 bg-primary/5" 
+                    : "border-border/50 hover:border-border"
+                )}
+                onClick={() => setOptimizationMethod("badcase")}
+              >
+                <RadioGroupItem value="badcase" id="badcase" className="h-3.5 w-3.5" />
+                <Label htmlFor="badcase" className="text-xs cursor-pointer flex items-center gap-1.5">
+                  <Database className="h-3.5 w-3.5 text-muted-foreground" />
+                  基于具体BadCase
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Daily Report Params */}
+          {optimizationMethod === "daily-report" && (
+            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">日期</Label>
+                <Input
+                  type="date"
+                  value={dailyDate}
+                  onChange={(e) => setDailyDate(e.target.value)}
+                  className="h-9 text-xs rounded-xl border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">业务场景</Label>
+                <Input
+                  placeholder="例如：退款、配送、投诉..."
+                  value={businessScenario}
+                  onChange={(e) => setBusinessScenario(e.target.value)}
+                  className="h-9 text-xs rounded-xl border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* BadCase Params */}
+          {optimizationMethod === "badcase" && (
+            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">
+                  SessionId集合 <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  placeholder="输入SessionId，多个用逗号或换行分隔..."
+                  value={sessionIds}
+                  onChange={(e) => setSessionIds(e.target.value)}
+                  className="min-h-[80px] text-xs rounded-xl border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground flex items-center gap-1">
+                  人工问题分析
+                  <span className="text-muted-foreground font-normal">（可选）</span>
+                </Label>
+                <Textarea
+                  placeholder="输入您对这些Case的初步分析..."
+                  value={manualAnalysis}
+                  onChange={(e) => setManualAnalysis(e.target.value)}
+                  className="min-h-[60px] text-xs rounded-xl border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+
+        <CardFooter className="px-4 pb-4 pt-0">
+          <Button
+            onClick={handleStartOptimization}
+            disabled={!canStart || isProcessing}
+            className="w-full h-10 rounded-xl gap-2 shadow-sm hover:shadow transition-all"
+          >
+            <Play className="h-4 w-4" />
+            开始优化
+          </Button>
+        </CardFooter>
+      </Card>
+    )
+  }
+
   // Form Mode View
   const renderFormMode = () => {
     const activeTasks = pendingTasks.filter(t => !(t as PendingTask & { completed?: boolean }).completed)
     const completedTasks = pendingTasks.filter(t => (t as PendingTask & { completed?: boolean }).completed)
+    const showStartForm = currentStep === "idle" && activeTasks.length === 0
 
     return (
       <div className="flex h-full flex-col">
         <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
           <div className="space-y-4">
+            {/* Start Form */}
+            {showStartForm && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {renderStartForm()}
+              </div>
+            )}
+
+            {/* Active Tasks */}
             {activeTasks.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">待处理任务</h3>
@@ -301,6 +474,7 @@ export function HumanCollaboration({
               </div>
             )}
             
+            {/* Completed Tasks */}
             {completedTasks.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">已完成任务</h3>
@@ -312,13 +486,14 @@ export function HumanCollaboration({
               </div>
             )}
             
-            {activeTasks.length === 0 && completedTasks.length === 0 && (
+            {/* Empty state when workflow is running */}
+            {!showStartForm && activeTasks.length === 0 && completedTasks.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                   <ListChecks className="h-6 w-6 text-muted-foreground/50" />
                 </div>
-                <p className="text-sm text-muted-foreground">暂无待处理任务</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">启动优化流程后，需要确认的任务将显示在这里</p>
+                <p className="text-sm text-muted-foreground">流程执行中...</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">需要确认的任务将显示在这里</p>
               </div>
             )}
           </div>
@@ -329,6 +504,8 @@ export function HumanCollaboration({
 
   // Chat Mode View
   const renderChatMode = () => {
+    const showStartCard = currentStep === "idle" && pendingTasks.length === 0
+
     return (
       <div className="flex h-full flex-col">
         {/* Messages Area */}
@@ -387,6 +564,24 @@ export function HumanCollaboration({
                 </div>
               )
             })}
+
+            {/* Start Card in Chat Mode */}
+            {showStartCard && (
+              <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-sm shadow-primary/20">
+                    <Sparkles className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm font-medium text-foreground">优化助手</span>
+                      <span className="text-xs text-muted-foreground">配置参数</span>
+                    </div>
+                    {renderStartForm()}
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Typing indicator */}
             {isProcessing && (

@@ -28,6 +28,18 @@ export interface PendingTask {
   inputPlaceholder?: string
 }
 
+export type OptimizationMethod = "daily-report" | "badcase"
+
+export interface OptimizationParams {
+  method: OptimizationMethod
+  // 日报优化参数
+  date?: string
+  businessScenario?: string
+  // BadCase优化参数
+  sessionIds?: string
+  manualAnalysis?: string
+}
+
 export default function HomePage() {
   const [currentStep, setCurrentStep] = useState<WorkflowStep>("idle")
   const [reports, setReports] = useState<ReportSection[]>([])
@@ -47,16 +59,23 @@ export default function HomePage() {
     setReports((prev) => [...prev, newReport])
   }
 
-  const startWorkflow = () => {
+  const startWorkflow = (params: OptimizationParams) => {
     setIsProcessing(true)
     setCurrentStep("analysis")
 
+    // Store params for later use if needed
+    console.log("[v0] Starting workflow with params:", params)
+
     setTimeout(() => {
       setTimeout(() => {
+        const analysisContent = params.method === "daily-report"
+          ? `## 分析结果\n\n**优化方式**: 基于日报优化\n**日期**: ${params.date || "未指定"}\n**业务场景**: ${params.businessScenario || "全部场景"}\n\n### 识别的问题场景\n\n1. **退款流程咨询** - 占比35%\n   - 用户对退款时间和流程不清楚\n   - 当前回复模板过于笼统\n\n2. **产品功能疑问** - 占比28%\n   - 新功能说明不够详细\n   - 缺少示例说明\n\n3. **账户问题处理** - 占比22%\n   - 密码重置流程复杂\n   - 安全验证步骤说明不清\n\n### 建议优化方向\n- 细化退款场景的回复模板\n- 增加功能说明的具体示例\n- 简化账户问题的处理流程说明`
+          : `## 分析结果\n\n**优化方式**: 基于具体BadCase优化\n**SessionId集合**: ${params.sessionIds || "未指定"}\n${params.manualAnalysis ? `**人工分析**: ${params.manualAnalysis}` : ""}\n\n### 问题Case分析\n\n1. **执行-动作未执行/虚假承诺** - 3个Case\n   - Agent在话术中承诺"已扩大调度范围"，但未在final_solution_actions中调用对应的执行工具\n   - 导致口头承诺与实际动作脱节\n\n2. **感知-业务信号缺失** - 2个Case\n   - Agent忽略了{无骑手接单时长}、{是否到店自取订单}等关键业务信号\n   - 未能根据SOP要求的15分钟阈值准确区分"扩大调度"与"加急调度"\n\n3. **交互-规则透明化不足** - 1个Case\n   - 回复中缺乏对业务规则（如等待时长阈值）的解释\n   - 导致商家对处理逻辑缺乏预期\n\n### 建议优化方向\n- 强化执行铁律，确保承诺与工具调用同步\n- 提升信号感知优先级\n- 规范工具调用逻辑`
+        
         addReport(
           "analysis",
           "场景问题分析报告",
-          `## 分析结果\n\n### 识别的问题场景\n\n1. **退款流程咨询** - 占比35%\n   - 用户对退款时间和流程不清楚\n   - 当前回复模板过于笼统\n\n2. **产品功能疑问** - 占比28%\n   - 新功能说明不够详细\n   - 缺少示例说明\n\n3. **账户问题处理** - 占比22%\n   - 密码重置流程复杂\n   - 安全验证步骤说明不清\n\n### 建议优化方向\n- 细化退款场景的回复模板\n- 增加功能说明的具体示例\n- 简化账户问题的处理流程说明`
+          analysisContent
         )
 
         setPendingTasks([
@@ -184,7 +203,6 @@ export default function HomePage() {
                 <WorkflowDiagram
                   currentStep={currentStep}
                   isProcessing={isProcessing}
-                  onStart={startWorkflow}
                 />
               </div>
               
@@ -199,6 +217,7 @@ export default function HomePage() {
                   pendingTasks={pendingTasks}
                   onTaskComplete={handleTaskComplete}
                   onChatMessage={handleChatMessage}
+                  onStartWorkflow={startWorkflow}
                   currentStep={currentStep}
                   isProcessing={isProcessing}
                 />

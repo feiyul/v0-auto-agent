@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Search, Lightbulb, Zap, Play, CheckCircle2, Loader2 } from "lucide-react"
+import { Search, Lightbulb, Zap, CheckCircle2, Loader2 } from "lucide-react"
 import type { WorkflowStep } from "@/app/page"
 
 interface WorkflowDiagramProps {
   currentStep: WorkflowStep
   isProcessing: boolean
-  onStart: () => void
 }
 
 const steps = [
@@ -33,7 +31,7 @@ const steps = [
   },
 ]
 
-export function WorkflowDiagram({ currentStep, isProcessing, onStart }: WorkflowDiagramProps) {
+export function WorkflowDiagram({ currentStep, isProcessing }: WorkflowDiagramProps) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -90,15 +88,6 @@ export function WorkflowDiagram({ currentStep, isProcessing, onStart }: Workflow
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-muted-foreground">优化流程</h2>
-        <Button
-          size="sm"
-          onClick={onStart}
-          disabled={currentStep !== "idle" || isProcessing}
-          className="gap-2 rounded-full px-5 h-10 shadow-sm hover:shadow transition-all"
-        >
-          <Play className="h-4 w-4" />
-          开始优化
-        </Button>
       </div>
 
       <div className="flex items-start justify-between gap-3">
