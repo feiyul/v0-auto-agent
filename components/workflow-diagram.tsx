@@ -9,6 +9,7 @@ interface WorkflowDiagramProps {
   currentStep: WorkflowStep
   isProcessing: boolean
   onStepClick?: (stepId: WorkflowStep) => void
+  showConfirmationStep?: boolean
 }
 
 const steps = [
@@ -38,7 +39,7 @@ const steps = [
   },
 ]
 
-export function WorkflowDiagram({ currentStep, isProcessing, onStepClick }: WorkflowDiagramProps) {
+export function WorkflowDiagram({ currentStep, isProcessing, onStepClick, showConfirmationStep = false }: WorkflowDiagramProps) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -67,6 +68,11 @@ export function WorkflowDiagram({ currentStep, isProcessing, onStepClick }: Work
     }
   }
 
+  // Filter steps based on whether to show confirmation step
+  const displayedSteps = showConfirmationStep 
+    ? steps 
+    : steps.filter(s => s.id !== "confirmation")
+
   if (!mounted) {
     return (
       <div className="space-y-6">
@@ -75,7 +81,7 @@ export function WorkflowDiagram({ currentStep, isProcessing, onStepClick }: Work
           <div className="h-10 w-28 bg-muted/50 animate-pulse rounded-full" />
         </div>
         <div className="flex items-start justify-between gap-4">
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3].map((i) => (
             <div key={i} className="flex flex-1 items-start gap-3">
               <div className="flex flex-col items-center">
                 <div className="h-14 w-14 bg-muted/50 animate-pulse rounded-2xl" />
@@ -98,7 +104,7 @@ export function WorkflowDiagram({ currentStep, isProcessing, onStepClick }: Work
       </div>
 
       <div className="flex items-start justify-between gap-3">
-        {steps.map((step, index) => {
+        {displayedSteps.map((step, index) => {
           const status = getStepStatus(step.id)
           const Icon = step.icon
 
@@ -150,12 +156,12 @@ export function WorkflowDiagram({ currentStep, isProcessing, onStepClick }: Work
                   </p>
                 </div>
               </button>
-              {index < steps.length - 1 && (
+              {index < displayedSteps.length - 1 && (
                 <div className="mt-7 flex-1 px-1">
                   <div
                     className={cn(
                       "h-1 w-full rounded-full transition-all duration-500",
-                      getStepStatus(steps[index + 1].id) !== "pending"
+                      getStepStatus(displayedSteps[index + 1].id) !== "pending"
                         ? "bg-gradient-to-r from-emerald-400 to-primary"
                         : "bg-muted/50"
                     )}

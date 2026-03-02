@@ -114,7 +114,16 @@ export default function HomePage() {
     } else if (task.step === "suggestions" && result === "确认优化建议") {
       proceedToOptimization()
     } else if (task.step === "optimization") {
-      proceedToConfirmation()
+      if (result === "同步线上") {
+        // Directly sync to production
+        completeWorkflow()
+      } else if (result === "人工优化") {
+        // Go to manual confirmation step
+        proceedToConfirmation()
+      } else {
+        // "进入人工确认" from re-optimization flow
+        proceedToConfirmation()
+      }
     } else if (task.step === "confirmation") {
       if (result === "重新优化") {
         // Re-run optimization with modifications
@@ -176,12 +185,9 @@ export default function HomePage() {
             {
               id: "task-3",
               step: "optimization",
-              title: "确认优化结果",
-              description: "智能优化已完成，请确认结果并进入人工确认阶段",
-              options: ["进入人工确认", "需要调整"],
-              requiresInput: true,
-              inputLabel: "调整需求（可选）",
-              inputPlaceholder: "如需调整，请描述具体需求...",
+              title: "智能优化已完成",
+              description: "请在右侧「版本对比」中查看优化结果，选择下一步操作",
+              options: ["同步线上", "人工优化"],
             },
           ])
           setIsProcessing(false)
@@ -240,12 +246,9 @@ export default function HomePage() {
           {
             id: "task-3-reopt",
             step: "optimization",
-            title: "确认重新优化结果",
-            description: "已根据修改意见重新优化，请确认结果",
-            options: ["进入人工确认", "继续调整"],
-            requiresInput: true,
-            inputLabel: "调整需求（可选）",
-            inputPlaceholder: "如需继续调整，请描述具体需求...",
+            title: "重新优化已完成",
+            description: "已根据修改意见重新优化，请查看结果并选择下一步操作",
+            options: ["同步线上", "人工优化"],
           },
         ])
         setIsProcessing(false)
@@ -332,6 +335,7 @@ export default function HomePage() {
                   currentStep={currentStep}
                   isProcessing={isProcessing}
                   onStepClick={handleStepClick}
+                  showConfirmationStep={currentStep === "confirmation"}
                 />
               </div>
               
