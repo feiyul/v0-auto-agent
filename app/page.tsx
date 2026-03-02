@@ -115,8 +115,22 @@ export default function HomePage() {
       proceedToOptimization()
     } else if (task.step === "optimization") {
       if (result === "同步线上") {
-        // Directly sync to production
+        // Show sync confirmation task
+        showSyncConfirmation()
+      } else if (result === "确认同步线上") {
+        // Actually sync to production
         completeWorkflow()
+      } else if (result === "取消") {
+        // Go back to the options
+        setPendingTasks([
+          {
+            id: "task-3-back-" + Date.now(),
+            step: "optimization",
+            title: "智能优化已完成",
+            description: "请在右侧「版本对比」中查看优化结果，选择下一步操作",
+            options: ["同步线上", "人工优化"],
+          },
+        ])
       } else if (result === "人工优化") {
         // Go to manual confirmation step
         proceedToConfirmation()
@@ -204,7 +218,7 @@ export default function HomePage() {
       addReport(
         "confirmation",
         "人工确认报告",
-        `## 待确认的优化内容\n\n### AgentPrompt 变更\n\n**智能总控Agent**\n- 新增"严禁虚假承诺与口头执行"条款\n- 强制要求话术承诺与工具调用必须同步\n- 新增"信号核对"优先级最高的决策依据\n\n### 知识库变更\n\n**调度场景知识**\n- 更新调度阈值判断规则\n- 新增15分钟关键时间节点说明\n\n### 服务策略变更\n\n**转人工挽回**\n- 优化触发条件判断逻辑\n- 增加情绪识别权重\n\n---\n\n请在右侧「版本对比」中查看详细变更内容，您可以：\n1. 点击「有变化」的组件添加修改意见\n2. 使用「人工优化」功能进行批量调整\n3. 确认无误后点击「同步线上」发布变更`
+        `## 待确认的优化内容\n\n### AgentPrompt 变更\n\n**智能总控Agent**\n- 新增"严禁虚假承诺与口头执行"条款\n- 强制要求话术承诺与工具调用必须同步\n- 新增"信号核对"优先级最高的决策依据\n\n### 知识库变更\n\n**调度场景知识**\n- 更新调度阈值判断规则\n- 新增15分钟关键时间节点说明\n\n### 服务策略变更\n\n**转人工挽回**\n- 优化触发条件判断逻辑\n- 增加情绪识别权重\n\n---\n\n请在右侧「版本对比」中查看详细变更内容，您可以：\n1. 点击「有变化」的组件添加修改意见\n2. 使用「人工优化���功能进行批量调整\n3. 确认无误后点击「同步线上」发布变更`
       )
 
       setPendingTasks([
@@ -256,21 +270,34 @@ export default function HomePage() {
     }, 1000)
   }
 
+  const showSyncConfirmation = () => {
+    // Show sync confirmation task
+    setPendingTasks([
+      {
+        id: "task-sync",
+        step: "optimization",
+        title: "同步线上确认",
+        description: "即将同步至生产环境的版本：v2，更新时间：" + new Date().toLocaleString('zh-CN'),
+        options: ["确认同步线上", "取消"],
+      },
+    ])
+  }
+
   const completeWorkflow = () => {
     // Add completion report
     addReport(
-      "confirmation",
-      "优化已完成",
-      `## 优化流程已完成\n\n本次优化已成功完成，所有变更已准备就绪。\n\n### 已完成的操作\n\n1. 场景问题分析 - 已完成\n2. 优化建议生成 - 已完成\n3. 智能优化执行 - 已完成\n4. 人工确认 - 已确认\n\n### 后续操作\n\n- 您可以在右侧「版本对比」中使用「同步线上」功能将变更发布到生产环境\n- 或点击下方「开始新优化」按钮启动新的优化流程`
+      "optimization",
+      "同步完成",
+      `## 同步完成\n\n本次优化已成功同步到线上环境。\n\n### 同步详情\n\n- **版本号**: v2\n- **同步时间**: ${new Date().toLocaleString('zh-CN')}\n- **变更内容**: AgentPrompt、知识库、服务策略\n\n### 后续操作\n\n- 建议在生产环境中观察效果\n- 如需进一步优化，请点击「开始新优化」`
     )
 
     // Add a completion task that allows starting a new workflow
     setPendingTasks([
       {
-        id: "task-complete",
+        id: "task-complete-" + Date.now(),
         step: "idle",
-        title: "优化流程已完成",
-        description: "所有变更已准备就绪，您可以同步到线上或开始新的优化流程",
+        title: "优化已同步线上",
+        description: "所有变更已同步到生产环境",
         options: ["开始新优化"],
       },
     ])
