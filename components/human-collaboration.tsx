@@ -481,8 +481,8 @@ export function HumanCollaboration({
               </div>
             )}
             
-            {/* Modifications Display for Confirmation Step */}
-            {currentStep === "confirmation" && modifications.length > 0 && (
+            {/* Modifications Display for Confirmation and Optimization Steps */}
+            {(currentStep === "confirmation" || (currentStep === "optimization" && modifications.length > 0)) && modifications.length > 0 && (
               <Card className="border border-border/50 shadow-sm rounded-2xl">
                 <CardHeader className="pb-2 px-4 pt-4">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -629,6 +629,54 @@ export function HumanCollaboration({
                       <span className="text-xs text-muted-foreground">配置参数</span>
                     </div>
                     {renderStartForm()}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modifications Display in Chat Mode */}
+            {(currentStep === "confirmation" || currentStep === "optimization") && modifications.length > 0 && (
+              <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-purple-500 shadow-sm shadow-violet-500/20">
+                    <Edit3 className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm font-medium text-foreground">已添加的修改意见</span>
+                      <span className="text-xs text-muted-foreground">{modifications.length} 条</span>
+                    </div>
+                    <Card className="border border-border/50 shadow-sm rounded-2xl">
+                      <CardContent className="px-4 py-3 space-y-3">
+                        {modifications.map((mod, idx) => (
+                          <div key={mod.id} className="p-3 bg-muted/30 rounded-xl border border-border/30">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <p className="text-xs font-medium text-foreground">
+                                {idx + 1}. {mod.component}
+                              </p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 shrink-0"
+                                onClick={() => onRemoveModification?.(mod.id)}
+                              >
+                                <span className="sr-only">删除</span>
+                                <svg className="h-3.5 w-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </Button>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mb-1.5 line-clamp-2">{mod.originalContent}</p>
+                            <Textarea
+                              value={mod.modifiedContent}
+                              onChange={(e) => onUpdateModification?.(mod.id, e.target.value)}
+                              placeholder="调整为..."
+                              className="min-h-[60px] text-xs rounded-lg border-border/30 bg-background focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
+                            />
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
               </div>
