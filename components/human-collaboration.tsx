@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { CheckCircle2, Edit3, AlertCircle, Sparkles, ArrowUp, MessageSquare, ListChecks, Play, Calendar, FileText, Database } from "lucide-react"
-import type { PendingTask, WorkflowStep, OptimizationParams, OptimizationMethod } from "@/app/page"
+import type { PendingTask, WorkflowStep, OptimizationParams, OptimizationMethod, ModificationItem } from "@/app/page"
 
 interface HumanCollaborationProps {
   pendingTasks: PendingTask[]
@@ -19,6 +19,9 @@ interface HumanCollaborationProps {
   onStartWorkflow: (params: OptimizationParams) => void
   currentStep: WorkflowStep
   isProcessing: boolean
+  modifications?: ModificationItem[]
+  onRemoveModification?: (id: string) => void
+  onUpdateModification?: (id: string, modifiedContent: string) => void
 }
 
 interface ChatMessage {
@@ -37,6 +40,7 @@ const stepLabels: Record<WorkflowStep, string> = {
   analysis: "场景分析",
   suggestions: "优化建议",
   optimization: "智能优化",
+  confirmation: "人工确认",
 }
 
 const WELCOME_MESSAGE = "您好！我是智能优化助手。请先配置优化参数并点击「开始优化」启动流程，我会在关键节点请求您的确认和反馈。"
@@ -48,6 +52,9 @@ export function HumanCollaboration({
   onStartWorkflow,
   currentStep,
   isProcessing,
+  modifications = [],
+  onRemoveModification,
+  onUpdateModification,
 }: HumanCollaborationProps) {
   const [mounted, setMounted] = useState(false)
   const [mode, setMode] = useState<InteractionMode>("form")
@@ -472,6 +479,50 @@ export function HumanCollaboration({
                   </div>
                 ))}
               </div>
+            )}
+            
+            {/* Modifications Display for Confirmation Step */}
+            {currentStep === "confirmation" && modifications.length > 0 && (
+              <Card className="border border-border/50 shadow-sm rounded-2xl">
+                <CardHeader className="pb-2 px-4 pt-4">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Edit3 className="h-4 w-4 text-primary" />
+                    已添加的修改意见 ({modifications.length})
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    点击右侧版本对比中「有变化」的组件可添加更多修改意见
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 pt-2 space-y-3">
+                  {modifications.map((mod, idx) => (
+                    <div key={mod.id} className="p-3 bg-muted/30 rounded-xl border border-border/30">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <p className="text-xs font-medium text-foreground">
+                          {idx + 1}. {mod.component}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 shrink-0"
+                          onClick={() => onRemoveModification?.(mod.id)}
+                        >
+                          <span className="sr-only">删除</span>
+                          <svg className="h-3.5 w-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </Button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mb-1.5 line-clamp-2">{mod.originalContent}</p>
+                      <Textarea
+                        value={mod.modifiedContent}
+                        onChange={(e) => onUpdateModification?.(mod.id, e.target.value)}
+                        placeholder="调整为..."
+                        className="min-h-[60px] text-xs rounded-lg border-border/30 bg-background focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
+                      />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             )}
             
             {/* Completed Tasks */}

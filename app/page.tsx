@@ -40,11 +40,19 @@ export interface OptimizationParams {
   manualAnalysis?: string
 }
 
+export interface ModificationItem {
+  id: string
+  component: string
+  originalContent: string
+  modifiedContent: string
+}
+
 export default function HomePage() {
   const [currentStep, setCurrentStep] = useState<WorkflowStep>("idle")
   const [reports, setReports] = useState<ReportSection[]>([])
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
+  const [modifications, setModifications] = useState<ModificationItem[]>([])
   const reportIdCounter = useRef(0)
 
   const addReport = (step: WorkflowStep, title: string, content: string) => {
@@ -108,7 +116,12 @@ export default function HomePage() {
     } else if (task.step === "optimization") {
       proceedToConfirmation()
     } else if (task.step === "confirmation") {
-      completeWorkflow()
+      if (result === "添加修改意见重新优化") {
+        // Re-run optimization with modifications
+        reOptimizeWithModifications(additionalInput)
+      } else {
+        completeWorkflow()
+      }
     }
   }
 
@@ -199,12 +212,62 @@ export default function HomePage() {
     }, 1000)
   }
 
+  const reOptimizeWithModifications = (overallSuggestion?: string) => {
+    setIsProcessing(true)
+    setCurrentStep("optimization")
+
+    // Use modifications and overall suggestion to re-optimize
+    const modCount = modifications.length
+    const modSummary = modifications.map(m => `- ${m.component}: ${m.modifiedContent}`).join('\n')
+
+    setTimeout(() => {
+      setTimeout(() => {
+        addReport(
+          "optimization",
+          "重新优化执行报告",
+          `## 基于修改意见的重新优化\n\n### 收到的修改意见 (${modCount}条)\n\n${modSummary || "无具体组件修改"}\n\n${overallSuggestion ? `### 总体修改建议\n${overallSuggestion}\n\n` : ""}### 已完成的调整\n\n#### 1. AgentPrompt 调整\n- 根据修改意见更新了智能总控Agent的行为准则\n- 优化了决策逻辑的透明度要求\n\n#### 2. 知识库调整\n- 更新了调度场景的阈值判断规则\n- 完善了时间节点的说明文档\n\n#### 3. 服务策略调整\n- 优化了转人工挽回的触发逻辑\n\n### 预期效果\n- 根据修改意见调整后，预计合规性提升 20%\n- 预计决策准确性提升 12%`
+        )
+
+        // Clear modifications after re-optimization
+        setModifications([])
+
+        setPendingTasks([
+          {
+            id: "task-3-reopt",
+            step: "optimization",
+            title: "确认重新优化结果",
+            description: "已根据修改意见重新优化，请确认结果",
+            options: ["进入人工确认", "继续调整"],
+            requiresInput: true,
+            inputLabel: "调整需求（可选）",
+            inputPlaceholder: "如需继续调整，请描述具体需求...",
+          },
+        ])
+        setIsProcessing(false)
+      }, 1500)
+    }, 1000)
+  }
+
   const completeWorkflow = () => {
     setCurrentStep("idle")
   }
 
   const handleChatMessage = (_message: string) => {
     // Handle chat message - could be extended for AI responses
+  }
+
+  const handleAddModification = (modification: ModificationItem) => {
+    setModifications(prev => [...prev, modification])
+  }
+
+  const handleRemoveModification = (id: string) => {
+    setModifications(prev => prev.filter(m => m.id !== id))
+  }
+
+  const handleUpdateModification = (id: string, modifiedContent: string) => {
+    setModifications(prev => prev.map(m => 
+      m.id === id ? { ...m, modifiedContent } : m
+    ))
   }
 
   return (
@@ -249,6 +312,9 @@ export default function HomePage() {
                   onStartWorkflow={startWorkflow}
                   currentStep={currentStep}
                   isProcessing={isProcessing}
+                  modifications={modifications}
+                  onRemoveModification={handleRemoveModification}
+                  onUpdateModification={handleUpdateModification}
                 />
               </div>
             </div>
@@ -258,7 +324,10 @@ export default function HomePage() {
 
           <ResizablePanel defaultSize={50} minSize={30}>
             <div className="h-full rounded-2xl bg-card shadow-md overflow-hidden border border-border/40">
-              <LogsReportsTabs reports={reports} />
+              <LogsReportsTabs 
+                reports={reports} 
+                onAddModification={handleAddModification}
+              />
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
