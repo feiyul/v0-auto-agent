@@ -16,13 +16,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { FileText, Sparkles, GitCompare, ChevronDown, ChevronUp, X, Trash2, Upload, Pencil } from "lucide-react"
-import type { ReportSection, WorkflowStep } from "@/app/page"
+import { FileText, Sparkles, GitCompare, ChevronDown, ChevronUp, Upload, Pencil } from "lucide-react"
+import type { ReportSection, WorkflowStep, ModificationItem } from "@/app/page"
 import ReactMarkdown from "react-markdown"
 
 interface ReportsPanelProps {
   reports: ReportSection[]
   showVersionComparison?: boolean
+  onAddModification?: (modification: ModificationItem) => void
 }
 
 const stepLabels: Record<WorkflowStep, string> = {
@@ -102,7 +103,7 @@ interface ModificationItem {
   modifiedContent: string
 }
 
-export function LogsReportsTabs({ reports, showVersionComparison = true }: ReportsPanelProps) {
+export function LogsReportsTabs({ reports, showVersionComparison = true, onAddModification }: ReportsPanelProps) {
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState("reports")
   const [expandedDiffs, setExpandedDiffs] = useState<Record<number, boolean>>({})
@@ -112,17 +113,10 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
   const [manualOptDialogOpen, setManualOptDialogOpen] = useState(false)
   const [syncConfirmed, setSyncConfirmed] = useState(false)
   
-  // Modification states
-  const [modifications, setModifications] = useState<ModificationItem[]>([
-    {
-      id: "1",
-      component: "AgentPrompt / 智能总控Agent",
-      originalContent: "行为准则: 你是唯一的决策者，必须根据商家诉求动态选择知识库，严格依据知识库做出专业判断，并生成高质量话术。",
-      modifiedContent: "调整为2项",
-    },
-  ])
-  const [overallSuggestion, setOverallSuggestion] = useState("")
-  const [editingModification, setEditingModification] = useState<ModificationItem | null>(null)
+  // Add modification dialog state
+  const [addModDialogOpen, setAddModDialogOpen] = useState(false)
+  const [pendingModification, setPendingModification] = useState<{component: string, originalContent: string} | null>(null)
+  const [modificationContent, setModificationContent] = useState("")
 
   useEffect(() => {
     setMounted(true)
@@ -141,31 +135,24 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
     setExpandedDiffs(prev => ({ ...prev, [index]: !prev[index] }))
   }
 
-  const handleRemoveModification = (id: string) => {
-    setModifications(prev => prev.filter(m => m.id !== id))
+  const handleOpenAddModDialog = (component: string, originalContent: string) => {
+    setPendingModification({ component, originalContent })
+    setModificationContent("")
+    setAddModDialogOpen(true)
   }
 
-  const handleAddModification = (component: string, originalContent: string) => {
-    const newMod: ModificationItem = {
-      id: Date.now().toString(),
-      component,
-      originalContent,
-      modifiedContent: "",
+  const handleConfirmAddMod = () => {
+    if (pendingModification && onAddModification) {
+      onAddModification({
+        id: Date.now().toString(),
+        component: pendingModification.component,
+        originalContent: pendingModification.originalContent,
+        modifiedContent: modificationContent,
+      })
     }
-    setEditingModification(newMod)
-  }
-
-  const handleSaveModification = () => {
-    if (!editingModification) return
-    
-    if (modifications.find(m => m.id === editingModification.id)) {
-      setModifications(prev => prev.map(m => 
-        m.id === editingModification.id ? editingModification : m
-      ))
-    } else {
-      setModifications(prev => [...prev, editingModification])
-    }
-    setEditingModification(null)
+    setAddModDialogOpen(false)
+    setPendingModification(null)
+    setModificationContent("")
   }
 
   const handleSync = () => {
@@ -408,7 +395,7 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                           {versionComparisonData.components.agentPrompt.map((item) => (
                             <button
                               key={item.name}
-                              onClick={() => item.hasChange && handleAddModification(
+                              onClick={() => item.hasChange && handleOpenAddModDialog(
                                 `AgentPrompt / ${item.name}`,
                                 "行为准则: 你是唯一的决策者，必须根据商家诉求动态选择知识库，严格依据知识库做出专业判断，并生成高质量话术。"
                               )}
@@ -443,10 +430,14 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                           {versionComparisonData.components.knowledgeBase.map((item) => (
                             <button
                               key={item.name}
+                              onClick={() => item.hasChange && handleOpenAddModDialog(
+                                `知识库 / ${item.name}`,
+                                "调度场景知识: 根据配送时间和距离等因素进行调度决策..."
+                              )}
                               className={cn(
                                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                                 item.hasChange 
-                                  ? "bg-primary/10 text-primary border border-primary/30" 
+                                  ? "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 cursor-pointer" 
                                   : "bg-muted text-muted-foreground"
                               )}
                             >
@@ -474,10 +465,14 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                           {versionComparisonData.components.serviceStrategy.map((item) => (
                             <button
                               key={item.name}
+                              onClick={() => item.hasChange && handleOpenAddModDialog(
+                                `服务策略 / ${item.name}`,
+                                "转人工挽回策略: 根据用户情绪和问题复杂度决定是否转人工..."
+                              )}
                               className={cn(
                                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                                 item.hasChange 
-                                  ? "bg-primary/10 text-primary border border-primary/30" 
+                                  ? "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 cursor-pointer" 
                                   : "bg-muted text-muted-foreground"
                               )}
                             >
@@ -555,37 +550,7 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                   </CardContent>
                 </Card>
 
-                {/* Modifications Side Panel */}
-                {modifications.length > 0 && (
-                  <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base">修改意见</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="space-y-3">
-                        {modifications.map((mod, idx) => (
-                          <div key={mod.id} className="p-3 bg-muted/30 rounded-xl">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-foreground">{idx + 1}. {mod.component}</p>
-                                <p className="text-xs text-muted-foreground mt-1 truncate">{mod.originalContent}</p>
-                                <p className="text-xs text-primary mt-1">{mod.modifiedContent}</p>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 shrink-0"
-                                onClick={() => handleRemoveModification(mod.id)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                
               </div>
             )}
           </div>
@@ -641,103 +606,54 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
         </DialogContent>
       </Dialog>
 
-      {/* Manual Optimization Dialog */}
+      {/* Manual Optimization Dialog - simplified, modifications managed in left panel */}
       <Dialog open={manualOptDialogOpen} onOpenChange={setManualOptDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto rounded-2xl">
+        <DialogContent className="sm:max-w-[500px] rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">人工优化</DialogTitle>
             <DialogDescription>
-              查看并管理对版本对比内容的修改意见，填写总体修改建议后开始人工优化
+              点击「有变化」的组件添加修改意见，修改意见会显示在左侧人工确认面板中
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-6">
-            <div>
-              <h4 className="text-sm font-semibold text-foreground mb-3">v2 版本内容的优化评论</h4>
-              {modifications.length === 0 ? (
-                <div className="text-sm text-muted-foreground p-4 bg-muted/30 rounded-xl text-center">
-                  暂无修改意见，点击版本对比中「有变化」的组件添加
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {modifications.map((mod, idx) => (
-                    <div key={mod.id} className="p-4 border border-border rounded-xl">
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <p className="text-sm font-medium text-foreground">
-                          {idx + 1}. {mod.component}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 shrink-0"
-                          onClick={() => handleRemoveModification(mod.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground mb-2">{mod.originalContent}</p>
-                      <Textarea
-                        value={mod.modifiedContent}
-                        onChange={(e) => {
-                          setModifications(prev => prev.map(m => 
-                            m.id === mod.id ? { ...m, modifiedContent: e.target.value } : m
-                          ))
-                        }}
-                        placeholder="调整为..."
-                        className="min-h-[80px] rounded-xl text-sm"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-semibold text-foreground mb-3">总体修改建议</h4>
-              <Textarea
-                value={overallSuggestion}
-                onChange={(e) => setOverallSuggestion(e.target.value)}
-                placeholder="请输入对版本对比的总体修改建议（可选）"
-                className="min-h-[120px] rounded-xl text-sm"
-              />
-            </div>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              请在版本对比中点击「有变化」的组件添加修改意见。添加的修改意见将在左侧「人工确认」面板中显示和管理。
+            </p>
           </div>
           <DialogFooter>
             <Button 
-              onClick={handleManualOptimize}
+              onClick={() => setManualOptDialogOpen(false)}
               className="rounded-full"
             >
-              开始人工优化
+              知道了
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Modification Popover */}
-      <Dialog open={!!editingModification} onOpenChange={(open) => !open && setEditingModification(null)}>
+      {/* Add Modification Dialog */}
+      <Dialog open={addModDialogOpen} onOpenChange={setAddModDialogOpen}>
         <DialogContent className="sm:max-w-[500px] rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">添加修改意见</DialogTitle>
             <DialogDescription className="sr-only">添加组件修改意见</DialogDescription>
           </DialogHeader>
-          {editingModification && (
+          {pendingModification && (
             <div className="py-4 space-y-4">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">文档：{editingModification.component}</p>
+                <p className="text-xs text-muted-foreground mb-1">文档：{pendingModification.component}</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-foreground mb-2">选中的内容</p>
                 <div className="p-3 bg-muted/30 rounded-xl text-sm text-muted-foreground">
-                  {editingModification.originalContent}
+                  {pendingModification.originalContent}
                 </div>
               </div>
               <div>
                 <p className="text-xs font-medium text-foreground mb-2">修改意见</p>
                 <Textarea
-                  value={editingModification.modifiedContent}
-                  onChange={(e) => setEditingModification({ 
-                    ...editingModification, 
-                    modifiedContent: e.target.value 
-                  })}
+                  value={modificationContent}
+                  onChange={(e) => setModificationContent(e.target.value)}
                   placeholder="调整为..."
                   className="min-h-[100px] rounded-xl text-sm"
                 />
@@ -745,10 +661,10 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
             </div>
           )}
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditingModification(null)} className="rounded-full">
+            <Button variant="outline" onClick={() => setAddModDialogOpen(false)} className="rounded-full">
               取消
             </Button>
-            <Button onClick={handleSaveModification} className="rounded-full">
+            <Button onClick={handleConfirmAddMod} className="rounded-full">
               确定
             </Button>
           </DialogFooter>
