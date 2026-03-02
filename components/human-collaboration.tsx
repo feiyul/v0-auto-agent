@@ -35,6 +35,8 @@ const stepLabels: Record<WorkflowStep, string> = {
   optimization: "智能优化",
 }
 
+const WELCOME_MESSAGE = "您好！我是智能优化助手。点击「开始优化」启动流程后，我会在关键节点请求您的确认和反馈。您也可以随时在对话中提出问题或修改意见。"
+
 export function HumanCollaboration({
   pendingTasks,
   onTaskComplete,
@@ -42,19 +44,26 @@ export function HumanCollaboration({
   currentStep,
   isProcessing,
 }: HumanCollaborationProps) {
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: "您好！我是智能优化助手。点击「开始优化」启动流程后，我会在关键节点请求您的确认和反馈。您也可以随时在对话中提出问题或修改意见。",
-      timestamp: new Date(),
-    },
-  ])
+  const [mounted, setMounted] = useState(false)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState("")
   const [taskInputs, setTaskInputs] = useState<Record<string, string>>({})
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const processedTaskIds = useRef<Set<string>>(new Set())
+
+  // Initialize on mount to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+    setChatMessages([
+      {
+        id: "welcome",
+        role: "assistant",
+        content: WELCOME_MESSAGE,
+        timestamp: new Date(),
+      },
+    ])
+  }, [])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -253,6 +262,34 @@ export function HumanCollaboration({
           </CardContent>
         )}
       </Card>
+    )
+  }
+
+  if (!mounted) {
+    return (
+      <div className="flex h-full flex-col bg-muted/30">
+        <div className="flex shrink-0 items-center justify-between border-b bg-card px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-16 bg-muted animate-pulse rounded" />
+            <div className="h-5 w-12 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+        <div className="flex-1 p-4 space-y-4">
+          <div className="flex gap-3">
+            <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
+              <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+            </div>
+          </div>
+        </div>
+        <div className="shrink-0 border-t bg-card p-4">
+          <div className="flex gap-2">
+            <div className="h-10 flex-1 bg-muted animate-pulse rounded" />
+            <div className="h-10 w-10 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+      </div>
     )
   }
 

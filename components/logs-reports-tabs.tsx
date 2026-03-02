@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -45,12 +46,38 @@ const logTypeConfig = {
 }
 
 export function LogsReportsTabs({ logs, reports }: LogsReportsTabsProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const formatTime = (date: Date) => {
+    if (!mounted) return "--:--:--"
     return date.toLocaleTimeString("zh-CN", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
     })
+  }
+
+  if (!mounted) {
+    return (
+      <div className="flex h-full flex-col bg-card">
+        <div className="shrink-0 border-b px-4">
+          <div className="flex h-12 items-center gap-4">
+            <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+            <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+        <div className="flex-1 p-4">
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="h-10 w-10 bg-muted animate-pulse rounded" />
+            <div className="mt-3 h-4 w-24 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

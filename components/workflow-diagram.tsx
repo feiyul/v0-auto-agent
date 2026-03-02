@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Search, Lightbulb, Zap, Play, CheckCircle2, Loader2 } from "lucide-react"
@@ -33,6 +34,12 @@ const steps = [
 ]
 
 export function WorkflowDiagram({ currentStep, isProcessing, onStart }: WorkflowDiagramProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const getStepStatus = (stepId: WorkflowStep) => {
     const stepOrder = ["analysis", "suggestions", "optimization"]
     const currentIndex = stepOrder.indexOf(currentStep)
@@ -42,6 +49,30 @@ export function WorkflowDiagram({ currentStep, isProcessing, onStart }: Workflow
     if (stepIndex < currentIndex) return "completed"
     if (stepIndex === currentIndex) return isProcessing ? "processing" : "active"
     return "pending"
+  }
+
+  if (!mounted) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+          <div className="h-8 w-24 bg-muted animate-pulse rounded" />
+        </div>
+        <div className="flex items-start justify-between gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex flex-1 items-start gap-2">
+              <div className="flex flex-col items-center">
+                <div className="h-10 w-10 bg-muted animate-pulse rounded-full" />
+                <div className="mt-2 space-y-1">
+                  <div className="h-3 w-16 bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
