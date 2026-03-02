@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Sparkles } from "lucide-react"
@@ -54,13 +53,13 @@ export function LogsReportsTabs({ reports }: ReportsPanelProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-br from-background to-muted/30">
+    <div className="flex h-full flex-col overflow-hidden bg-gradient-to-br from-background to-muted/30">
       <div className="shrink-0 px-8 py-6">
         <h2 className="text-xl font-semibold text-foreground">优化报告</h2>
         <p className="mt-1 text-sm text-muted-foreground">查看任务的优化结果、指标与版本对比</p>
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <div className="px-8 pb-8">
           {reports.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -164,7 +163,7 @@ export function LogsReportsTabs({ reports }: ReportsPanelProps) {
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
