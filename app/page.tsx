@@ -8,14 +8,6 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 
 export type WorkflowStep = "analysis" | "suggestions" | "optimization" | "idle"
 
-export interface LogEntry {
-  id: string
-  timestamp: Date
-  step: WorkflowStep
-  message: string
-  type: "info" | "warning" | "success" | "error"
-}
-
 export interface ReportSection {
   id: string
   title: string
@@ -37,24 +29,10 @@ export interface PendingTask {
 
 export default function HomePage() {
   const [currentStep, setCurrentStep] = useState<WorkflowStep>("idle")
-  const [logs, setLogs] = useState<LogEntry[]>([])
   const [reports, setReports] = useState<ReportSection[]>([])
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
-  const logIdCounter = useRef(0)
   const reportIdCounter = useRef(0)
-
-  const addLog = (step: WorkflowStep, message: string, type: LogEntry["type"] = "info") => {
-    logIdCounter.current += 1
-    const newLog: LogEntry = {
-      id: `log-${Date.now()}-${logIdCounter.current}`,
-      timestamp: new Date(),
-      step,
-      message,
-      type,
-    }
-    setLogs((prev) => [...prev, newLog])
-  }
 
   const addReport = (step: WorkflowStep, title: string, content: string) => {
     reportIdCounter.current += 1
@@ -71,12 +49,9 @@ export default function HomePage() {
   const startWorkflow = () => {
     setIsProcessing(true)
     setCurrentStep("analysis")
-    addLog("analysis", "开始场景问题分析...", "info")
 
     setTimeout(() => {
-      addLog("analysis", "正在分析客服对话数据...", "info")
       setTimeout(() => {
-        addLog("analysis", "识别到3个主要问题场景", "success")
         addReport(
           "analysis",
           "场景问题分析报告",
@@ -105,7 +80,6 @@ export default function HomePage() {
     if (!task) return
 
     setPendingTasks((prev) => prev.filter((t) => t.id !== taskId))
-    addLog(task.step, `用户选择: ${result}${additionalInput ? ` - 补充: ${additionalInput}` : ""}`, "info")
 
     if (task.step === "analysis" && result === "确认分析结果") {
       proceedToSuggestions()
@@ -119,12 +93,9 @@ export default function HomePage() {
   const proceedToSuggestions = () => {
     setIsProcessing(true)
     setCurrentStep("suggestions")
-    addLog("suggestions", "开始生成优化建议...", "info")
 
     setTimeout(() => {
-      addLog("suggestions", "分析历史对话模式...", "info")
       setTimeout(() => {
-        addLog("suggestions", "生成5条优化建议", "success")
         addReport(
           "suggestions",
           "优化建议报告",
@@ -151,14 +122,10 @@ export default function HomePage() {
   const proceedToOptimization = () => {
     setIsProcessing(true)
     setCurrentStep("optimization")
-    addLog("optimization", "开始执行智能优化...", "info")
 
     setTimeout(() => {
-      addLog("optimization", "更新知识库条目...", "info")
       setTimeout(() => {
-        addLog("optimization", "优化Prompt模板...", "info")
         setTimeout(() => {
-          addLog("optimization", "智能优化完成", "success")
           addReport(
             "optimization",
             "优化执行报告",
@@ -185,19 +152,10 @@ export default function HomePage() {
 
   const completeWorkflow = () => {
     setCurrentStep("idle")
-    addLog("optimization", "工作流程完成", "success")
   }
 
-  const handleChatMessage = (message: string) => {
-    addLog(currentStep === "idle" ? "analysis" : currentStep, `用户消息: ${message}`, "info")
-
-    setTimeout(() => {
-      addLog(
-        currentStep === "idle" ? "analysis" : currentStep,
-        `AI回复: 收到您的反馈，正在处理中...`,
-        "info"
-      )
-    }, 500)
+  const handleChatMessage = (_message: string) => {
+    // Handle chat message - could be extended for AI responses
   }
 
   return (
@@ -232,7 +190,7 @@ export default function HomePage() {
           <ResizableHandle withHandle />
 
           <ResizablePanel defaultSize={50} minSize={30}>
-            <LogsReportsTabs logs={logs} reports={reports} />
+            <LogsReportsTabs reports={reports} />
           </ResizablePanel>
         </ResizablePanelGroup>
       </main>
