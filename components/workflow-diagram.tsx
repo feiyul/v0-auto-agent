@@ -40,15 +40,26 @@ export function WorkflowDiagram({ currentStep, isProcessing, onStart }: Workflow
     setMounted(true)
   }, [])
 
-  const getStepStatus = (stepId: WorkflowStep) => {
+  const getStepStatus = (stepId: WorkflowStep): "pending" | "processing" | "completed" => {
     const stepOrder = ["analysis", "suggestions", "optimization"]
     const currentIndex = stepOrder.indexOf(currentStep)
     const stepIndex = stepOrder.indexOf(stepId)
 
     if (currentStep === "idle") return "pending"
     if (stepIndex < currentIndex) return "completed"
-    if (stepIndex === currentIndex) return isProcessing ? "processing" : "active"
+    if (stepIndex === currentIndex) return "processing"
     return "pending"
+  }
+
+  const getStatusLabel = (status: "pending" | "processing" | "completed") => {
+    switch (status) {
+      case "pending":
+        return "未开始"
+      case "processing":
+        return "进行中"
+      case "completed":
+        return "已完成"
+    }
   }
 
   if (!mounted) {
@@ -102,7 +113,6 @@ export function WorkflowDiagram({ currentStep, isProcessing, onStart }: Workflow
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all",
                     status === "completed" && "border-primary bg-primary text-primary-foreground",
-                    status === "active" && "border-primary bg-primary/10 text-primary",
                     status === "processing" && "border-primary bg-primary/10 text-primary",
                     status === "pending" && "border-muted-foreground/30 bg-muted text-muted-foreground"
                   )}
@@ -120,14 +130,23 @@ export function WorkflowDiagram({ currentStep, isProcessing, onStart }: Workflow
                     className={cn(
                       "text-xs font-medium",
                       status === "completed" && "text-primary",
-                      status === "active" && "text-primary",
                       status === "processing" && "text-primary",
                       status === "pending" && "text-muted-foreground"
                     )}
                   >
                     {step.label}
                   </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground/70 max-w-[120px]">
+                  <span
+                    className={cn(
+                      "mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
+                      status === "completed" && "bg-primary/10 text-primary",
+                      status === "processing" && "bg-amber-500/10 text-amber-600",
+                      status === "pending" && "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {getStatusLabel(status)}
+                  </span>
+                  <p className="mt-1 text-xs text-muted-foreground/70 max-w-[120px]">
                     {step.description}
                   </p>
                 </div>
