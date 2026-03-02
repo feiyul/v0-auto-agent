@@ -4,12 +4,14 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Sparkles } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FileText, Sparkles, GitCompare, ChevronDown, ChevronUp } from "lucide-react"
 import type { ReportSection, WorkflowStep } from "@/app/page"
 import ReactMarkdown from "react-markdown"
 
 interface ReportsPanelProps {
   reports: ReportSection[]
+  showVersionComparison?: boolean
 }
 
 const stepLabels: Record<WorkflowStep, string> = {
@@ -19,8 +21,71 @@ const stepLabels: Record<WorkflowStep, string> = {
   optimization: "智能优化",
 }
 
-export function LogsReportsTabs({ reports }: ReportsPanelProps) {
+// Mock version comparison data
+const versionComparisonData = {
+  baseline: {
+    version: "BASELINE",
+    label: "对比版本",
+    score: 62.5,
+  },
+  optimized: {
+    version: "v2",
+    label: "最优版本",
+    score: 92.5,
+  },
+  components: {
+    agentPrompt: [
+      { name: "外呼Agent", hasChange: false },
+      { name: "智能总控Agent", hasChange: true },
+    ],
+    knowledgeBase: [
+      { name: "取货场景知识", hasChange: false },
+      { name: "投诉场景知识", hasChange: false },
+      { name: "调度场景知识", hasChange: true },
+    ],
+    serviceStrategy: [
+      { name: "多方案择优", hasChange: false },
+      { name: "引导操作", hasChange: false },
+      { name: "收尾祝福", hasChange: false },
+      { name: "无能为力", hasChange: false },
+      { name: "转人工挽回", hasChange: true },
+      { name: "递进式沟通", hasChange: false },
+    ],
+  },
+  selectedComponent: {
+    name: "智能总控Agent",
+    goal: "做出业务决策并产出策略路径",
+    steps: [
+      "首次决策：召回知识后需要做出新决策",
+      "策略演进：状态变化需更新决策（如外呼结果返回）",
+      "策略复用：商家追问进度/简单回应，复用 previous_solution_strategy 并输出话术",
+      "注意：本步骤可能直接输出话术（need_retrieve_strategy=false）或触发服务策略召回（need_retrieve_strategy=true）",
+    ],
+    diffs: [
+      {
+        search: `决策依据：
+• 首次决策：基于 retrieved_knowledge_content 生成全新的策略路径
+• 策略演进：基于 previous_solution_strategy 更新阶段和决策要素`,
+        replace: `决策依据：
+• 信号核对（优先级最高）：决策前必须严格核对 system_signal 中的关键阈值（如{无骑手接单时长}是否达15分钟、{是否到店自取订单}、{商家主营品类}等），确保决策符合 SOP 逻辑，并在话术中体现规则透明化（如提及具体的等待时长要求）。
+• 首次决策：基于 retrieved_knowledge_content 生成全新的策略路径
+• 策略演进：基于 previous_solution_strategy 更新阶段和决策要素`,
+      },
+      {
+        search: `5. 区分指令与情绪：区分商家的直接指令和情绪化表达，优先解决核心问题并安抚情绪。
+6. 阶段流转（防死循环）：`,
+        replace: `5. 区分指令与情绪：区分商家的直接指令和情绪化表达，优先解决核心问题并安抚情绪。
+6. 严禁虚假承诺与口头执行：严禁在未实际调用工具的情况下向用户承诺任何系统操作（如扩大调度、加急、转单等）。若回复中包含"已为您执行XX"或"已为您处理"，则必须在 final_solution_actions 中同步输出对应工具，确保承诺与执行一致。
+7. 阶段流转（防死循环）：`,
+      },
+    ],
+  },
+}
+
+export function LogsReportsTabs({ reports, showVersionComparison = true }: ReportsPanelProps) {
   const [mounted, setMounted] = useState(false)
+  const [activeTab, setActiveTab] = useState("reports")
+  const [expandedDiffs, setExpandedDiffs] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     setMounted(true)
@@ -33,6 +98,10 @@ export function LogsReportsTabs({ reports }: ReportsPanelProps) {
       minute: "2-digit",
       second: "2-digit",
     })
+  }
+
+  const toggleDiff = (index: number) => {
+    setExpandedDiffs(prev => ({ ...prev, [index]: !prev[index] }))
   }
 
   if (!mounted) {
@@ -52,118 +121,332 @@ export function LogsReportsTabs({ reports }: ReportsPanelProps) {
     )
   }
 
+  const hasOptimizationReport = reports.some(r => r.step === "optimization")
+
   return (
     <div className="flex h-full flex-col overflow-hidden bg-gradient-to-br from-background to-muted/30">
-      <div className="shrink-0 px-8 py-6">
-        <h2 className="text-xl font-semibold text-foreground">优化报告</h2>
-        <p className="mt-1 text-sm text-muted-foreground">查看任务的优化结果、指标与版本对比</p>
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex h-full flex-col">
+        <div className="shrink-0 px-8 pt-6 pb-4">
+          <TabsList className="w-full justify-start gap-2 bg-transparent p-0 h-auto">
+            <TabsTrigger 
+              value="reports"
+              className="gap-2 rounded-full px-5 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all"
+            >
+              <FileText className="h-4 w-4" />
+              优化报告
+            </TabsTrigger>
+            <TabsTrigger 
+              value="comparison"
+              className="gap-2 rounded-full px-5 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all"
+            >
+              <GitCompare className="h-4 w-4" />
+              版本对比
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-8 pb-8">
-          {reports.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-muted/50 to-muted/30 shadow-inner">
-                <FileText className="h-10 w-10 text-muted-foreground/40" />
+        <TabsContent value="reports" className="flex-1 overflow-y-auto m-0 mt-0">
+          <div className="px-8 pb-8">
+            {reports.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-muted/50 to-muted/30 shadow-inner">
+                  <FileText className="h-10 w-10 text-muted-foreground/40" />
+                </div>
+                <p className="mt-5 text-base font-medium text-muted-foreground">暂无报告</p>
+                <p className="mt-1.5 text-sm text-muted-foreground/60">
+                  开始优化流程后，报告将在此显示
+                </p>
               </div>
-              <p className="mt-5 text-base font-medium text-muted-foreground">暂无报告</p>
-              <p className="mt-1.5 text-sm text-muted-foreground/60">
-                开始优化流程后，报告将在此显示
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {reports.map((report) => (
-                <Card key={report.id} className="border-0 shadow-md rounded-3xl overflow-hidden bg-card hover:shadow-lg transition-shadow duration-300">
-                  <CardHeader className="pb-4 pt-5 px-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className={cn(
-                            "flex h-9 w-9 items-center justify-center rounded-xl",
-                            report.step === "analysis" && "bg-gradient-to-br from-blue-400/20 to-cyan-400/20",
-                            report.step === "suggestions" && "bg-gradient-to-br from-amber-400/20 to-orange-400/20",
-                            report.step === "optimization" && "bg-gradient-to-br from-emerald-400/20 to-teal-400/20"
-                          )}
-                        >
-                          <Sparkles 
+            ) : (
+              <div className="space-y-6">
+                {reports.map((report) => (
+                  <Card key={report.id} className="border-0 shadow-md rounded-2xl overflow-hidden bg-card hover:shadow-lg transition-shadow duration-300">
+                    <CardHeader className="pb-4 pt-5 px-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div 
                             className={cn(
-                              "h-5 w-5",
-                              report.step === "analysis" && "text-blue-500",
-                              report.step === "suggestions" && "text-amber-500",
-                              report.step === "optimization" && "text-emerald-500"
-                            )} 
-                          />
+                              "flex h-9 w-9 items-center justify-center rounded-xl",
+                              report.step === "analysis" && "bg-gradient-to-br from-blue-400/20 to-cyan-400/20",
+                              report.step === "suggestions" && "bg-gradient-to-br from-amber-400/20 to-orange-400/20",
+                              report.step === "optimization" && "bg-gradient-to-br from-emerald-400/20 to-teal-400/20"
+                            )}
+                          >
+                            <Sparkles 
+                              className={cn(
+                                "h-5 w-5",
+                                report.step === "analysis" && "text-blue-500",
+                                report.step === "suggestions" && "text-amber-500",
+                                report.step === "optimization" && "text-emerald-500"
+                              )} 
+                            />
+                          </div>
+                          <Badge 
+                            variant="secondary" 
+                            className={cn(
+                              "text-xs font-medium px-3 py-1 rounded-full border-0",
+                              report.step === "analysis" && "bg-blue-100/80 text-blue-600",
+                              report.step === "suggestions" && "bg-amber-100/80 text-amber-600",
+                              report.step === "optimization" && "bg-emerald-100/80 text-emerald-600"
+                            )}
+                          >
+                            {stepLabels[report.step]}
+                          </Badge>
                         </div>
-                        <Badge 
-                          variant="secondary" 
-                          className={cn(
-                            "text-xs font-medium px-3 py-1 rounded-full border-0",
-                            report.step === "analysis" && "bg-blue-100/80 text-blue-600",
-                            report.step === "suggestions" && "bg-amber-100/80 text-amber-600",
-                            report.step === "optimization" && "bg-emerald-100/80 text-emerald-600"
-                          )}
-                        >
-                          {stepLabels[report.step]}
-                        </Badge>
+                        <span className="text-xs text-muted-foreground/60">
+                          {formatTime(report.timestamp)}
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground/60">
-                        {formatTime(report.timestamp)}
-                      </span>
+                      <CardTitle className="text-lg font-semibold mt-4 text-foreground/90">{report.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-6 pb-6">
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown
+                          components={{
+                            h2: ({ children }) => (
+                              <h2 className="mb-4 mt-6 text-base font-semibold first:mt-0 text-foreground">
+                                {children}
+                              </h2>
+                            ),
+                            h3: ({ children }) => (
+                              <h3 className="mb-3 mt-5 text-sm font-semibold text-foreground/90">{children}</h3>
+                            ),
+                            h4: ({ children }) => (
+                              <h4 className="mb-2 mt-4 text-sm font-medium text-foreground/80">{children}</h4>
+                            ),
+                            p: ({ children }) => (
+                              <p className="mb-3 text-sm leading-relaxed text-muted-foreground">
+                                {children}
+                              </p>
+                            ),
+                            ul: ({ children }) => (
+                              <ul className="mb-4 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                                {children}
+                              </ul>
+                            ),
+                            ol: ({ children }) => (
+                              <ol className="mb-4 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+                                {children}
+                              </ol>
+                            ),
+                            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                            strong: ({ children }) => (
+                              <strong className="font-semibold text-foreground/90">{children}</strong>
+                            ),
+                            code: ({ children }) => (
+                              <code className="rounded-lg bg-muted/50 px-2 py-1 text-xs font-mono text-foreground/80">
+                                {children}
+                              </code>
+                            ),
+                          }}
+                        >
+                          {report.content}
+                        </ReactMarkdown>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="comparison" className="flex-1 overflow-y-auto m-0 mt-0">
+          <div className="px-8 pb-8">
+            {!hasOptimizationReport ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-muted/50 to-muted/30 shadow-inner">
+                  <GitCompare className="h-10 w-10 text-muted-foreground/40" />
+                </div>
+                <p className="mt-5 text-base font-medium text-muted-foreground">暂无版本对比</p>
+                <p className="mt-1.5 text-sm text-muted-foreground/60">
+                  完成优化流程后，版本对比将在此显示
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Version Cards */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-2xl border-2 border-red-200 bg-red-50/30 p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-lg font-bold text-foreground">{versionComparisonData.baseline.version}</span>
+                        <span className="ml-2 text-sm text-muted-foreground">{versionComparisonData.baseline.label}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm text-muted-foreground">评测分数</span>
+                        <span className="ml-2 text-2xl font-bold text-red-500">{versionComparisonData.baseline.score}</span>
+                      </div>
                     </div>
-                    <CardTitle className="text-lg font-semibold mt-4 text-foreground/90">{report.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-6 pb-6">
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown
-                        components={{
-                          h2: ({ children }) => (
-                            <h2 className="mb-4 mt-6 text-base font-semibold first:mt-0 text-foreground">
-                              {children}
-                            </h2>
-                          ),
-                          h3: ({ children }) => (
-                            <h3 className="mb-3 mt-5 text-sm font-semibold text-foreground/90">{children}</h3>
-                          ),
-                          h4: ({ children }) => (
-                            <h4 className="mb-2 mt-4 text-sm font-medium text-foreground/80">{children}</h4>
-                          ),
-                          p: ({ children }) => (
-                            <p className="mb-3 text-sm leading-relaxed text-muted-foreground">
-                              {children}
-                            </p>
-                          ),
-                          ul: ({ children }) => (
-                            <ul className="mb-4 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-                              {children}
-                            </ul>
-                          ),
-                          ol: ({ children }) => (
-                            <ol className="mb-4 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-                              {children}
-                            </ol>
-                          ),
-                          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                          strong: ({ children }) => (
-                            <strong className="font-semibold text-foreground/90">{children}</strong>
-                          ),
-                          code: ({ children }) => (
-                            <code className="rounded-lg bg-muted/50 px-2 py-1 text-xs font-mono text-foreground/80">
-                              {children}
-                            </code>
-                          ),
-                        }}
-                      >
-                        {report.content}
-                      </ReactMarkdown>
+                  </div>
+                  <div className="rounded-2xl border-2 border-blue-200 bg-blue-50/30 p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-lg font-bold text-foreground">{versionComparisonData.optimized.version}</span>
+                        <span className="ml-2 text-sm text-muted-foreground">{versionComparisonData.optimized.label}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm text-muted-foreground">评测分数</span>
+                        <span className="ml-2 text-2xl font-bold text-blue-500">{versionComparisonData.optimized.score}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Component Tabs */}
+                <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
+                  <CardContent className="p-6">
+                    {/* Agent Prompt */}
+                    <div className="mb-5">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-sm font-medium text-foreground">AgentPrompt</span>
+                        <div className="flex flex-wrap gap-2">
+                          {versionComparisonData.components.agentPrompt.map((item) => (
+                            <button
+                              key={item.name}
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                                item.hasChange 
+                                  ? "bg-primary/10 text-primary border border-primary/30" 
+                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                              )}
+                            >
+                              {item.name}
+                              <Badge 
+                                variant="secondary" 
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0 h-4 rounded-full",
+                                  item.hasChange ? "bg-primary/20 text-primary" : "bg-muted-foreground/20 text-muted-foreground"
+                                )}
+                              >
+                                {item.hasChange ? "有变化" : "无变化"}
+                              </Badge>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Knowledge Base */}
+                    <div className="mb-5">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-sm font-medium text-foreground">业务场景知识库</span>
+                        <div className="flex flex-wrap gap-2">
+                          {versionComparisonData.components.knowledgeBase.map((item) => (
+                            <button
+                              key={item.name}
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                                item.hasChange 
+                                  ? "bg-primary/10 text-primary border border-primary/30" 
+                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                              )}
+                            >
+                              {item.name}
+                              <Badge 
+                                variant="secondary" 
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0 h-4 rounded-full",
+                                  item.hasChange ? "bg-primary/20 text-primary" : "bg-muted-foreground/20 text-muted-foreground"
+                                )}
+                              >
+                                {item.hasChange ? "有变化" : "无变化"}
+                              </Badge>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Service Strategy */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-sm font-medium text-foreground">服务策略</span>
+                        <div className="flex flex-wrap gap-2">
+                          {versionComparisonData.components.serviceStrategy.map((item) => (
+                            <button
+                              key={item.name}
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                                item.hasChange 
+                                  ? "bg-primary/10 text-primary border border-primary/30" 
+                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                              )}
+                            >
+                              {item.name}
+                              <Badge 
+                                variant="secondary" 
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0 h-4 rounded-full",
+                                  item.hasChange ? "bg-primary/20 text-primary" : "bg-muted-foreground/20 text-muted-foreground"
+                                )}
+                              >
+                                {item.hasChange ? "有变化" : "无变化"}
+                              </Badge>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+
+                {/* Selected Component Details */}
+                <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="mb-4">
+                      <h3 className="text-base font-semibold text-foreground">{versionComparisonData.selectedComponent.name}</h3>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        <span className="font-medium">目标：</span>{versionComparisonData.selectedComponent.goal}
+                      </p>
+                    </div>
+
+                    <div className="mb-5">
+                      <p className="text-sm font-medium text-foreground mb-2">何时需要执行本步骤：</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {versionComparisonData.selectedComponent.steps.map((step, idx) => (
+                          <li key={idx} className="text-sm text-muted-foreground">{step}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Diff View */}
+                    <div className="space-y-4">
+                      {versionComparisonData.selectedComponent.diffs.map((diff, index) => (
+                        <div key={index} className="rounded-xl border border-border overflow-hidden">
+                          <button
+                            onClick={() => toggleDiff(index)}
+                            className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+                          >
+                            <span className="text-sm font-medium text-foreground">变更 {index + 1}</span>
+                            {expandedDiffs[index] ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </button>
+                          {(expandedDiffs[index] ?? true) && (
+                            <div className="grid grid-cols-2 divide-x divide-border">
+                              <div className="p-4 bg-red-50/50">
+                                <p className="text-xs font-semibold text-red-600 mb-2">SEARCH（原内容）</p>
+                                <pre className="text-xs text-red-800/80 whitespace-pre-wrap font-mono leading-relaxed">{diff.search}</pre>
+                              </div>
+                              <div className="p-4 bg-green-50/50">
+                                <p className="text-xs font-semibold text-green-600 mb-2">REPLACE（新内容）</p>
+                                <pre className="text-xs text-green-800/80 whitespace-pre-wrap font-mono leading-relaxed">{diff.replace}</pre>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
