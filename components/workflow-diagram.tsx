@@ -8,6 +8,7 @@ import type { WorkflowStep } from "@/app/page"
 interface WorkflowDiagramProps {
   currentStep: WorkflowStep
   isProcessing: boolean
+  onStepClick?: (stepId: WorkflowStep) => void
 }
 
 const steps = [
@@ -37,7 +38,7 @@ const steps = [
   },
 ]
 
-export function WorkflowDiagram({ currentStep, isProcessing }: WorkflowDiagramProps) {
+export function WorkflowDiagram({ currentStep, isProcessing, onStepClick }: WorkflowDiagramProps) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -103,13 +104,16 @@ export function WorkflowDiagram({ currentStep, isProcessing }: WorkflowDiagramPr
 
           return (
             <div key={step.id} className="flex flex-1 items-start gap-3">
-              <div className="flex flex-col items-center">
+              <button 
+                className="flex flex-col items-center group cursor-pointer"
+                onClick={() => onStepClick?.(step.id)}
+              >
                 <div
                   className={cn(
                     "flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300",
-                    status === "completed" && "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/20",
-                    status === "processing" && "bg-gradient-to-br from-primary/80 to-primary text-primary-foreground shadow-lg shadow-primary/20",
-                    status === "pending" && "bg-muted/60 text-muted-foreground"
+                    status === "completed" && "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/20 group-hover:shadow-xl group-hover:scale-105",
+                    status === "processing" && "bg-gradient-to-br from-primary/80 to-primary text-primary-foreground shadow-lg shadow-primary/20 group-hover:shadow-xl group-hover:scale-105",
+                    status === "pending" && "bg-muted/60 text-muted-foreground group-hover:bg-muted group-hover:scale-105"
                   )}
                 >
                   {status === "completed" ? (
@@ -145,7 +149,7 @@ export function WorkflowDiagram({ currentStep, isProcessing }: WorkflowDiagramPr
                     {step.description}
                   </p>
                 </div>
-              </div>
+              </button>
               {index < steps.length - 1 && (
                 <div className="mt-7 flex-1 px-1">
                   <div

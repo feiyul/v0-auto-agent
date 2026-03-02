@@ -279,6 +279,19 @@ export default function HomePage() {
     // Handle chat message - could be extended for AI responses
   }
 
+  const handleStepClick = (stepId: WorkflowStep) => {
+    // Only allow clicking on completed steps to view their reports
+    const stepOrder = ["analysis", "suggestions", "optimization", "confirmation"]
+    const currentIndex = stepOrder.indexOf(currentStep)
+    const clickedIndex = stepOrder.indexOf(stepId)
+
+    // Allow viewing completed steps or current step
+    if (clickedIndex <= currentIndex || currentStep === "idle") {
+      // Could expand to show step details/reports in a modal or scroll to that report
+      // For now, we just highlight that step was clicked
+    }
+  }
+
   const handleAddModification = (modification: ModificationItem) => {
     setModifications(prev => [...prev, modification])
   }
@@ -318,6 +331,7 @@ export default function HomePage() {
                 <WorkflowDiagram
                   currentStep={currentStep}
                   isProcessing={isProcessing}
+                  onStepClick={handleStepClick}
                 />
               </div>
               
