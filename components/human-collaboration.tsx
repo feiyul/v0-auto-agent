@@ -3,11 +3,10 @@
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Send, User, Bot, CheckCircle2, Edit3, AlertTriangle } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Send, CheckCircle2, Edit3, AlertTriangle, Sparkles, ArrowUp } from "lucide-react"
 import type { PendingTask, WorkflowStep } from "@/app/page"
 
 interface HumanCollaborationProps {
@@ -48,10 +47,11 @@ export function HumanCollaboration({
   const [chatInput, setChatInput] = useState("")
   const [taskInputs, setTaskInputs] = useState<Record<string, string>>({})
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [isFocused, setIsFocused] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const processedTaskIds = useRef<Set<string>>(new Set())
 
-  // Initialize on mount to avoid hydration mismatch
   useEffect(() => {
     setMounted(true)
     setChatMessages([
@@ -64,14 +64,12 @@ export function HumanCollaboration({
     ])
   }, [])
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [chatMessages])
 
-  // Convert pending tasks to chat messages with cards
   useEffect(() => {
     pendingTasks.forEach((task) => {
       if (!processedTaskIds.current.has(task.id)) {
@@ -88,6 +86,14 @@ export function HumanCollaboration({
     })
   }, [pendingTasks])
 
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`
+    }
+  }, [chatInput])
+
   const handleSendChat = () => {
     if (!chatInput.trim()) return
 
@@ -101,7 +107,6 @@ export function HumanCollaboration({
     onChatMessage(chatInput)
     setChatInput("")
 
-    // Simulate AI response
     setTimeout(() => {
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -136,7 +141,6 @@ export function HumanCollaboration({
     const additionalInput = taskInputs[taskId]
     onTaskComplete(taskId, option, additionalInput)
     
-    // Update the task card to show completed state
     setChatMessages((prev) =>
       prev.map((msg) =>
         msg.id === `task-${taskId}` && msg.taskCard
@@ -145,7 +149,6 @@ export function HumanCollaboration({
       )
     )
     
-    // Add confirmation message
     const confirmMessage: ChatMessage = {
       id: `confirm-${taskId}`,
       role: "assistant",
@@ -175,44 +178,47 @@ export function HumanCollaboration({
     return (
       <Card
         className={cn(
-          "w-full max-w-md border-l-4 transition-all",
+          "w-full border shadow-sm transition-all duration-200",
           isCompleted
-            ? "border-l-green-500 bg-green-50/50 dark:bg-green-950/20"
-            : "border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+            ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/20"
+            : "border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/20"
         )}
       >
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between">
             <Badge
-              variant={isCompleted ? "default" : "secondary"}
+              variant="secondary"
               className={cn(
-                "text-xs",
-                isCompleted && "bg-green-600 hover:bg-green-600"
+                "text-[10px] font-medium px-2 py-0.5",
+                isCompleted 
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" 
+                  : "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
               )}
             >
               {isCompleted ? "已确认" : stepLabels[task.step]}
             </Badge>
-            {isCompleted && (
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            )}
-            {!isCompleted && (
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
+            {isCompleted ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
             )}
           </div>
-          <CardTitle className="text-base">{task.title}</CardTitle>
-          <CardDescription className="text-sm">{task.description}</CardDescription>
+          <CardTitle className="text-sm font-semibold mt-2">{task.title}</CardTitle>
+          <CardDescription className="text-xs text-muted-foreground leading-relaxed">
+            {task.description}
+          </CardDescription>
         </CardHeader>
         
         {!isCompleted && (
           <>
-            <CardContent className="space-y-3 pt-2">
+            <CardContent className="space-y-3 pt-0 px-4 pb-2">
               {(task.requiresInput || isEditing) && (
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    {task.inputLabel || "补充说明（可选）"}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                    {task.inputLabel || "补充说明"}
                   </label>
                   <Textarea
-                    placeholder={task.inputPlaceholder || "输入您的修改意见或补充信息..."}
+                    placeholder={task.inputPlaceholder || "输入您的修改意见..."}
                     value={taskInputs[task.id] || ""}
                     onChange={(e) =>
                       setTaskInputs((prev) => ({
@@ -220,19 +226,19 @@ export function HumanCollaboration({
                         [task.id]: e.target.value,
                       }))
                     }
-                    className="min-h-[60px] resize-none text-sm"
+                    className="min-h-[60px] resize-none text-xs bg-background/50 border-muted"
                   />
                 </div>
               )}
             </CardContent>
             
-            <CardFooter className="flex flex-wrap gap-2 pt-2">
+            <CardFooter className="flex flex-wrap gap-1.5 px-4 pb-3 pt-1">
               {task.options?.map((option) => (
                 <Button
                   key={option}
                   variant={option.includes("确认") ? "default" : "outline"}
                   size="sm"
-                  className="text-xs"
+                  className="text-[11px] h-7 px-3"
                   onClick={() => handleTaskConfirm(task.id, option)}
                 >
                   {option}
@@ -242,11 +248,11 @@ export function HumanCollaboration({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="ml-auto text-xs"
+                  className="ml-auto text-[11px] h-7 text-muted-foreground hover:text-foreground"
                   onClick={() => toggleEditMode(task.id)}
                 >
                   <Edit3 className="mr-1 h-3 w-3" />
-                  {isEditing ? "收起" : "添加修改意见"}
+                  {isEditing ? "收起" : "修改"}
                 </Button>
               )}
             </CardFooter>
@@ -254,8 +260,8 @@ export function HumanCollaboration({
         )}
         
         {isCompleted && task.selectedOption && (
-          <CardContent className="pt-0">
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="px-4 pb-3 pt-0">
+            <p className="text-[11px] text-muted-foreground">
               已选择：<span className="font-medium text-foreground">{task.selectedOption}</span>
             </p>
           </CardContent>
@@ -266,26 +272,14 @@ export function HumanCollaboration({
 
   if (!mounted) {
     return (
-      <div className="flex h-full flex-col bg-muted/30">
-        <div className="flex shrink-0 items-center justify-between border-b bg-card px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="h-5 w-16 bg-muted animate-pulse rounded" />
-            <div className="h-5 w-12 bg-muted animate-pulse rounded" />
-          </div>
-        </div>
+      <div className="flex h-full flex-col bg-background">
         <div className="flex-1 p-4 space-y-4">
           <div className="flex gap-3">
-            <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
+            <div className="h-6 w-6 bg-muted animate-pulse rounded-full shrink-0" />
             <div className="flex-1 space-y-2">
-              <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
-              <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+              <div className="h-3 w-3/4 bg-muted animate-pulse rounded" />
+              <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
             </div>
-          </div>
-        </div>
-        <div className="shrink-0 border-t bg-card p-4">
-          <div className="flex gap-2">
-            <div className="h-10 flex-1 bg-muted animate-pulse rounded" />
-            <div className="h-10 w-10 bg-muted animate-pulse rounded" />
           </div>
         </div>
       </div>
@@ -293,94 +287,129 @@ export function HumanCollaboration({
   }
 
   return (
-    <div className="flex h-full flex-col bg-muted/30">
-      <div className="flex shrink-0 items-center justify-between border-b bg-card px-4 py-3">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium">人机协同</h3>
-          <Badge variant="outline" className="text-xs">
-            {stepLabels[currentStep]}
-          </Badge>
-          {isProcessing && (
-            <Badge variant="secondary" className="animate-pulse text-xs">
-              处理中...
-            </Badge>
-          )}
-        </div>
-      </div>
-
+    <div className="flex h-full flex-col bg-background">
+      {/* Messages Area */}
       <div className="flex-1 overflow-y-auto" ref={scrollRef}>
-        <div className="space-y-4 p-4">
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
           {chatMessages.map((message) => {
-            // Render task card
+            // Task card
             if (message.taskCard) {
               return (
-                <div key={message.id} className="flex gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900">
-                    <Bot className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <p className="mb-2 text-xs text-muted-foreground">需要您的确认</p>
-                    {renderTaskCard(message.taskCard as PendingTask & { completed?: boolean; selectedOption?: string })}
+                <div key={message.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-sm">
+                      <Sparkles className="h-3.5 w-3.5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-medium text-foreground">优化助手</span>
+                        <span className="text-[10px] text-muted-foreground">需要确认</span>
+                      </div>
+                      {renderTaskCard(message.taskCard as PendingTask & { completed?: boolean; selectedOption?: string })}
+                    </div>
                   </div>
                 </div>
               )
             }
 
-            // Render regular chat messages
-            return (
-              <div
-                key={message.id}
-                className={cn(
-                  "flex gap-3",
-                  message.role === "user" ? "flex-row-reverse" : ""
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  )}
-                >
-                  {message.role === "user" ? (
-                    <User className="h-4 w-4" />
-                  ) : (
-                    <Bot className="h-4 w-4" />
-                  )}
+            // User message
+            if (message.role === "user") {
+              return (
+                <div key={message.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-start gap-3 justify-end">
+                    <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-primary-foreground">
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                    </div>
+                  </div>
                 </div>
-                <div
-                  className={cn(
-                    "max-w-[80%] rounded-lg px-3 py-2 text-sm",
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card border"
-                  )}
-                >
-                  {message.content}
+              )
+            }
+
+            // Assistant message
+            return (
+              <div key={message.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
+                    <Sparkles className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium text-foreground">优化助手</span>
+                    </div>
+                    <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                      {message.content}
+                    </div>
+                  </div>
                 </div>
               </div>
             )
           })}
+          
+          {/* Typing indicator when processing */}
+          {isProcessing && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-start gap-3">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
+                  <Sparkles className="h-3.5 w-3.5 text-white" />
+                </div>
+                <div className="flex items-center gap-1.5 py-2">
+                  <div className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:-0.3s]" />
+                  <div className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:-0.15s]" />
+                  <div className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="shrink-0 border-t bg-card p-4">
-        <div className="flex gap-2">
-          <Input
-            placeholder="输入消息或修改意见..."
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleSendChat()
-              }
-            }}
-          />
-          <Button size="icon" onClick={handleSendChat} disabled={!chatInput.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
+      {/* Input Area - Cursor Style */}
+      <div className="shrink-0 border-t bg-background/80 backdrop-blur-sm">
+        <div className="max-w-2xl mx-auto p-4">
+          <div 
+            className={cn(
+              "relative flex items-end gap-2 rounded-2xl border bg-background shadow-sm transition-all duration-200",
+              isFocused 
+                ? "border-primary/50 ring-2 ring-primary/20" 
+                : "border-border hover:border-muted-foreground/30"
+            )}
+          >
+            <textarea
+              ref={textareaRef}
+              placeholder="发送消息..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSendChat()
+                }
+              }}
+              rows={1}
+              className="flex-1 resize-none bg-transparent px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px]"
+              style={{ minHeight: "44px" }}
+            />
+            <div className="flex items-center gap-1 pr-2 pb-2">
+              <Button
+                size="icon"
+                className={cn(
+                  "h-8 w-8 rounded-xl transition-all duration-200",
+                  chatInput.trim() 
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground" 
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                )}
+                onClick={handleSendChat}
+                disabled={!chatInput.trim()}
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <p className="text-center text-[10px] text-muted-foreground mt-2">
+            按 Enter 发送，Shift + Enter 换行
+          </p>
         </div>
       </div>
     </div>
