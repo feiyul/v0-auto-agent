@@ -376,10 +376,10 @@ export function HumanCollaboration({
         <div className="max-w-2xl mx-auto p-5">
           <div 
             className={cn(
-              "relative flex items-end gap-3 rounded-3xl bg-card shadow-lg transition-all duration-300",
+              "relative flex items-end gap-3 rounded-[28px] border border-border/60 bg-card transition-all duration-300",
               isFocused 
-                ? "shadow-xl ring-2 ring-primary/20" 
-                : "shadow-md hover:shadow-lg"
+                ? "border-primary/40 shadow-lg ring-2 ring-primary/10" 
+                : "shadow-sm hover:border-border hover:shadow-md"
             )}
           >
             <textarea
@@ -396,7 +396,7 @@ export function HumanCollaboration({
                 }
               }}
               rows={1}
-              className="flex-1 resize-none bg-transparent px-5 py-4 text-sm placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px]"
+              className="flex-1 resize-none bg-transparent px-5 py-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px]"
               style={{ minHeight: "52px" }}
             />
             <div className="flex items-center gap-2 pr-3 pb-3">
@@ -415,7 +415,7 @@ export function HumanCollaboration({
               </Button>
             </div>
           </div>
-          <p className="text-center text-[11px] text-muted-foreground/60 mt-3">
+          <p className="text-center text-[11px] text-muted-foreground mt-3">
             按 Enter 发送，Shift + Enter 换行
           </p>
         </div>

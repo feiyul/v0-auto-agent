@@ -178,7 +178,7 @@ export default function HomePage() {
       <main className="flex-1 overflow-hidden p-4">
         <ResizablePanelGroup direction="horizontal" className="h-full gap-4">
           <ResizablePanel defaultSize={50} minSize={35}>
-            <div className="flex h-full flex-col rounded-3xl bg-card shadow-lg overflow-hidden">
+            <div className="flex h-full flex-col rounded-2xl bg-card shadow-md overflow-hidden border border-border/40">
               {/* Workflow Section */}
               <div className="shrink-0 p-6 bg-gradient-to-b from-card to-muted/10">
                 <WorkflowDiagram
@@ -209,7 +209,7 @@ export default function HomePage() {
           <ResizableHandle className="w-1 bg-transparent hover:bg-primary/20 transition-colors rounded-full" />
 
           <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="h-full rounded-3xl bg-card shadow-lg overflow-hidden">
+            <div className="h-full rounded-2xl bg-card shadow-md overflow-hidden border border-border/40">
               <LogsReportsTabs reports={reports} />
             </div>
           </ResizablePanel>
