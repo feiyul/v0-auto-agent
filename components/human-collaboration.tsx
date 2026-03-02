@@ -546,7 +546,7 @@ export function HumanCollaboration({
     const activeTasks = pendingTasks.filter(t => !(t as PendingTask & { completed?: boolean }).completed)
     const completedTasks = pendingTasks.filter(t => (t as PendingTask & { completed?: boolean }).completed)
     const showStartForm = currentStep === "idle" && activeTasks.length === 0
-    const showModifications = (currentStep === "confirmation" || currentStep === "optimization") && modifications.length > 0
+    const showModifications = currentStep === "confirmation" && modifications.length > 0
 
     return (
       <div className="flex h-full flex-col">
@@ -615,7 +615,7 @@ export function HumanCollaboration({
   // Chat Mode View
   const renderChatMode = () => {
     const showStartCard = currentStep === "idle" && pendingTasks.length === 0
-    const showModifications = (currentStep === "confirmation" || currentStep === "optimization") && modifications.length > 0
+    const showModifications = currentStep === "confirmation" && modifications.length > 0
 
     return (
       <div className="flex h-full flex-col">
