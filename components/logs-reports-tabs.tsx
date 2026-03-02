@@ -24,6 +24,10 @@ interface ReportsPanelProps {
   reports: ReportSection[]
   showVersionComparison?: boolean
   onAddModification?: (modification: ModificationItem) => void
+  modifications?: ModificationItem[]
+  onRemoveModification?: (id: string) => void
+  onUpdateModification?: (id: string, content: string) => void
+  onStartManualOptimization?: (overallSuggestion: string) => void
 }
 
 const stepLabels: Record<WorkflowStep, string> = {
@@ -103,7 +107,15 @@ interface ModificationItem {
   modifiedContent: string
 }
 
-export function LogsReportsTabs({ reports, showVersionComparison = true, onAddModification }: ReportsPanelProps) {
+export function LogsReportsTabs({ 
+  reports, 
+  showVersionComparison = true, 
+  onAddModification,
+  modifications = [],
+  onRemoveModification,
+  onUpdateModification,
+  onStartManualOptimization,
+}: ReportsPanelProps) {
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState("reports")
   const [expandedDiffs, setExpandedDiffs] = useState<Record<number, boolean>>({})
@@ -117,6 +129,7 @@ export function LogsReportsTabs({ reports, showVersionComparison = true, onAddMo
   const [addModDialogOpen, setAddModDialogOpen] = useState(false)
   const [pendingModification, setPendingModification] = useState<{component: string, originalContent: string} | null>(null)
   const [modificationContent, setModificationContent] = useState("")
+  const [overallSuggestion, setOverallSuggestion] = useState("")
 
   useEffect(() => {
     setMounted(true)
@@ -606,26 +619,81 @@ export function LogsReportsTabs({ reports, showVersionComparison = true, onAddMo
         </DialogContent>
       </Dialog>
 
-      {/* Manual Optimization Dialog - simplified, modifications managed in left panel */}
+      {/* Manual Optimization Dialog */}
       <Dialog open={manualOptDialogOpen} onOpenChange={setManualOptDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] rounded-2xl">
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">人工优化</DialogTitle>
             <DialogDescription>
-              点击「有变化」的组件添加修改意见，修改意见会显示在左侧人工确认面板中
+              查看并管理对版本对比内容的修改意见，填写总体修改建议后开始人工优化
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              请在版本对比中点击「有变化」的组件添加修改意见。添加的修改意见将在左侧「人工确认」面板中显示和管理。
-            </p>
+          <div className="py-4 space-y-6">
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-3">v2 版本内容的优化评论</h4>
+              {modifications.length === 0 ? (
+                <div className="text-sm text-muted-foreground p-4 bg-muted/30 rounded-xl text-center">
+                  暂无修改意见，点击版本对比中「有变化」的组件添加
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {modifications.map((mod, idx) => (
+                    <div key={mod.id} className="p-4 border border-border rounded-xl">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <p className="text-sm font-medium text-foreground">
+                          {idx + 1}. {mod.component}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => onRemoveModification?.(mod.id)}
+                        >
+                          <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">{mod.originalContent}</p>
+                      <Textarea
+                        value={mod.modifiedContent}
+                        onChange={(e) => onUpdateModification?.(mod.id, e.target.value)}
+                        placeholder="调整为..."
+                        className="min-h-[80px] rounded-xl text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-3">总体修改建议</h4>
+              <Textarea
+                value={overallSuggestion}
+                onChange={(e) => setOverallSuggestion(e.target.value)}
+                placeholder="请输入对版本对比的总体修改建议（可选）"
+                className="min-h-[120px] rounded-xl text-sm"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button 
+              variant="outline"
               onClick={() => setManualOptDialogOpen(false)}
               className="rounded-full"
             >
-              知道了
+              取消
+            </Button>
+            <Button 
+              onClick={() => {
+                onStartManualOptimization?.(overallSuggestion)
+                setManualOptDialogOpen(false)
+                setOverallSuggestion("")
+              }}
+              className="rounded-full"
+            >
+              开始人工优化
             </Button>
           </DialogFooter>
         </DialogContent>

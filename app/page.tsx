@@ -116,10 +116,10 @@ export default function HomePage() {
     } else if (task.step === "optimization") {
       proceedToConfirmation()
     } else if (task.step === "confirmation") {
-      if (result === "添加修改意见重新优化") {
+      if (result === "重新优化") {
         // Re-run optimization with modifications
         reOptimizeWithModifications(additionalInput)
-      } else {
+      } else if (result === "确认完成") {
         completeWorkflow()
       }
     } else if (task.step === "idle" && result === "开始新优化") {
@@ -206,8 +206,8 @@ export default function HomePage() {
           id: "task-4",
           step: "confirmation",
           title: "人工确认优化内容",
-          description: "请在右侧版本对比中查看并确认优化内容，添加修改意见后可重新优化，或直接确认同步线上",
-          options: ["确认并同步", "添加修改意见重新优化"],
+          description: "请在右侧「版本对比」中查看变更详情，点击「有变化」的组件添加修改意见",
+          options: ["确认完成", "重新优化"],
           requiresInput: true,
           inputLabel: "总体修改建议（可选）",
           inputPlaceholder: "请输入您的总体修改建议...",
@@ -364,6 +364,12 @@ export default function HomePage() {
               <LogsReportsTabs 
                 reports={reports} 
                 onAddModification={handleAddModification}
+                modifications={modifications}
+                onRemoveModification={handleRemoveModification}
+                onUpdateModification={handleUpdateModification}
+                onStartManualOptimization={(overallSuggestion) => {
+                  reOptimizeWithModifications(overallSuggestion)
+                }}
               />
             </div>
           </ResizablePanel>
