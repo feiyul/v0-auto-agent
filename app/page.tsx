@@ -122,6 +122,11 @@ export default function HomePage() {
       } else {
         completeWorkflow()
       }
+    } else if (task.step === "idle" && result === "开始新优化") {
+      // Reset and show start form
+      setPendingTasks([])
+      setReports([])
+      setModifications([])
     }
   }
 
@@ -249,6 +254,24 @@ export default function HomePage() {
   }
 
   const completeWorkflow = () => {
+    // Add completion report
+    addReport(
+      "confirmation",
+      "优化已完成",
+      `## 优化流程已完成\n\n本次优化已成功完成，所有变更已准备就绪。\n\n### 已完成的操作\n\n1. 场景问题分析 - 已完成\n2. 优化建议生成 - 已完成\n3. 智能优化执行 - 已完成\n4. 人工确认 - 已确认\n\n### 后续操作\n\n- 您可以在右侧「版本对比」中使用「同步线上」功能将变更发布到生产环境\n- 或点击下方「开始新优化」按钮启动新的优化流程`
+    )
+
+    // Add a completion task that allows starting a new workflow
+    setPendingTasks([
+      {
+        id: "task-complete",
+        step: "idle",
+        title: "优化流程已完成",
+        description: "所有变更已准备就绪，您可以同步到线上或开始新的优化流程",
+        options: ["开始新优化"],
+      },
+    ])
+    
     setCurrentStep("idle")
   }
 
