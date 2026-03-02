@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { CheckCircle2, Edit3, AlertCircle, Sparkles, ArrowUp, MessageSquare, ListChecks, Play, Calendar, FileText, Database } from "lucide-react"
+import { CheckCircle2, Edit3, AlertCircle, Sparkles, ArrowUp, MessageSquare, ListChecks, Play, Calendar, Database, Trash2, FileText } from "lucide-react"
 import type { PendingTask, WorkflowStep, OptimizationParams, OptimizationMethod, ModificationItem } from "@/app/page"
 
 interface HumanCollaborationProps {
@@ -41,6 +41,14 @@ const stepLabels: Record<WorkflowStep, string> = {
   suggestions: "优化建议",
   optimization: "智能优化",
   confirmation: "人工确认",
+}
+
+const stepColors: Record<WorkflowStep, { bg: string; text: string; border: string }> = {
+  idle: { bg: "bg-muted/50", text: "text-muted-foreground", border: "border-muted" },
+  analysis: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  suggestions: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  optimization: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  confirmation: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" },
 }
 
 const WELCOME_MESSAGE = "您好！我是智能优化助手。请先配置优化参数并点击「开始优化」启动流程，我会在关键节点请求您的确认和反馈。"
@@ -214,20 +222,22 @@ export function HumanCollaboration({
     setEditingTaskId(editingTaskId === taskId ? null : taskId)
   }
 
+  // Unified Task Card Component
   const renderTaskCard = (task: PendingTask & { completed?: boolean; selectedOption?: string }, compact = false) => {
     const isCompleted = task.completed
     const isEditing = editingTaskId === task.id
+    const colors = stepColors[task.step]
 
     return (
       <Card
         className={cn(
           "w-full border shadow-sm transition-all duration-300 rounded-2xl overflow-hidden",
           isCompleted
-            ? "bg-gradient-to-br from-emerald-50 to-teal-50/50 border-emerald-200/50"
-            : "bg-gradient-to-br from-amber-50/80 to-orange-50/50 border-amber-200/50"
+            ? "bg-gradient-to-br from-emerald-50/80 to-teal-50/50 border-emerald-200/60"
+            : `bg-gradient-to-br from-card to-muted/20 ${colors.border}/40`
         )}
       >
-        <CardHeader className={cn("pb-2 px-4", compact ? "pt-3" : "pt-4")}>
+        <CardHeader className={cn("pb-2", compact ? "px-4 pt-3" : "px-5 pt-4")}>
           <div className="flex items-center justify-between">
             <Badge
               variant="secondary"
@@ -235,22 +245,23 @@ export function HumanCollaboration({
                 "text-[10px] font-medium px-2.5 py-0.5 rounded-full border-0",
                 isCompleted 
                   ? "bg-emerald-100/80 text-emerald-700" 
-                  : "bg-amber-100/80 text-amber-700"
+                  : `${colors.bg} ${colors.text}`
               )}
             >
               {isCompleted ? "已确认" : stepLabels[task.step]}
             </Badge>
-            {isCompleted ? (
-              <div className="h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center">
+            <div className={cn(
+              "h-6 w-6 rounded-full flex items-center justify-center",
+              isCompleted ? "bg-emerald-100" : colors.bg
+            )}>
+              {isCompleted ? (
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-              </div>
-            ) : (
-              <div className="h-5 w-5 rounded-full bg-amber-100 flex items-center justify-center">
-                <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
-              </div>
-            )}
+              ) : (
+                <AlertCircle className={cn("h-3.5 w-3.5", colors.text)} />
+              )}
+            </div>
           </div>
-          <CardTitle className={cn("font-semibold mt-2 text-foreground", compact ? "text-xs" : "text-sm")}>{task.title}</CardTitle>
+          <CardTitle className={cn("font-semibold mt-2.5 text-foreground", compact ? "text-sm" : "text-base")}>{task.title}</CardTitle>
           <CardDescription className="text-xs text-muted-foreground leading-relaxed mt-1">
             {task.description}
           </CardDescription>
@@ -258,12 +269,12 @@ export function HumanCollaboration({
         
         {!isCompleted && (
           <>
-            <CardContent className="space-y-2 pt-0 px-4 pb-2">
+            <CardContent className={cn("space-y-3 pt-0 pb-2", compact ? "px-4" : "px-5")}>
               {(task.requiresInput || isEditing) && (
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="space-y-2">
+                  <Label className="text-[11px] font-medium text-muted-foreground">
                     {task.inputLabel || "补充说明"}
-                  </label>
+                  </Label>
                   <Textarea
                     placeholder={task.inputPlaceholder || "输入您的修改意见..."}
                     value={taskInputs[task.id] || ""}
@@ -273,38 +284,41 @@ export function HumanCollaboration({
                         [task.id]: e.target.value,
                       }))
                     }
-                    className="min-h-[60px] resize-none text-xs bg-white/60 border-border/50 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/30"
+                    className="min-h-[70px] resize-none text-sm bg-background/60 border-border/40 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/30"
                   />
                 </div>
               )}
             </CardContent>
             
-            <CardFooter className="flex flex-wrap gap-1.5 px-4 pb-3 pt-1">
-              {task.options?.map((option) => (
-                <Button
-                  key={option}
-                  variant={option.includes("确认") ? "default" : "secondary"}
-                  size="sm"
-                  className={cn(
-                    "text-[11px] h-7 px-3 rounded-full transition-all",
-                    option.includes("确认") 
-                      ? "shadow-sm hover:shadow" 
-                      : "bg-white/60 hover:bg-white/80 border-border/30"
-                  )}
-                  onClick={() => handleTaskConfirm(task.id, option)}
-                >
-                  {option}
-                </Button>
-              ))}
+            <CardFooter className={cn("flex flex-wrap gap-2 pt-1 pb-4", compact ? "px-4" : "px-5")}>
+              {task.options?.map((option) => {
+                const isPrimary = option.includes("确认") || option.includes("同步") || option.includes("开始")
+                return (
+                  <Button
+                    key={option}
+                    variant={isPrimary ? "default" : "outline"}
+                    size="sm"
+                    className={cn(
+                      "text-xs h-8 px-4 rounded-full transition-all font-medium",
+                      isPrimary 
+                        ? "shadow-sm hover:shadow" 
+                        : "bg-background/60 hover:bg-background border-border/40"
+                    )}
+                    onClick={() => handleTaskConfirm(task.id, option)}
+                  >
+                    {option}
+                  </Button>
+                )
+              })}
               {!task.requiresInput && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="ml-auto text-[11px] h-7 text-muted-foreground hover:text-foreground rounded-full"
+                  className="ml-auto text-xs h-8 text-muted-foreground hover:text-foreground rounded-full"
                   onClick={() => toggleEditMode(task.id)}
                 >
-                  <Edit3 className="mr-1 h-3 w-3" />
-                  {isEditing ? "收起" : "修改"}
+                  <Edit3 className="mr-1.5 h-3 w-3" />
+                  {isEditing ? "收起" : "补充"}
                 </Button>
               )}
             </CardFooter>
@@ -312,8 +326,8 @@ export function HumanCollaboration({
         )}
         
         {isCompleted && task.selectedOption && (
-          <CardContent className="px-4 pb-3 pt-0">
-            <p className="text-[11px] text-muted-foreground">
+          <CardContent className={cn("pb-4 pt-0", compact ? "px-4" : "px-5")}>
+            <p className="text-xs text-muted-foreground">
               已选择：<span className="font-medium text-foreground/80">{task.selectedOption}</span>
             </p>
           </CardContent>
@@ -322,87 +336,109 @@ export function HumanCollaboration({
     )
   }
 
-  // Start Form Component
+  // Unified Start Form Component
   const renderStartForm = () => {
     const canStart = optimizationMethod === "daily-report" 
-      ? true // date is optional
+      ? true
       : sessionIds.trim().length > 0
 
     return (
-      <Card className="border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="pb-3 pt-4 px-4">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Play className="h-4 w-4 text-primary" />
+      <Card className="border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-primary/5 shadow-sm rounded-2xl overflow-hidden">
+        <CardHeader className="pb-4 pt-5 px-5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+              <Play className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-sm font-semibold text-foreground">开始优化</CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">配置优化参数并启动流程</CardDescription>
+              <CardTitle className="text-base font-semibold text-foreground">开始优化</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">配置优化参数并启动流程</CardDescription>
             </div>
           </div>
         </CardHeader>
         
-        <CardContent className="space-y-4 px-4 pb-4">
+        <CardContent className="space-y-5 px-5 pb-5">
           {/* Optimization Method */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-foreground">优化方式</Label>
+          <div className="space-y-3">
+            <Label className="text-xs font-semibold text-foreground">优化方式</Label>
             <RadioGroup
               value={optimizationMethod}
               onValueChange={(v) => setOptimizationMethod(v as OptimizationMethod)}
-              className="flex gap-2"
+              className="grid grid-cols-2 gap-3"
             >
-              <div 
+              <label
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all",
+                  "flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all",
                   optimizationMethod === "daily-report" 
-                    ? "border-primary/40 bg-primary/5" 
-                    : "border-border/50 hover:border-border"
+                    ? "border-primary bg-primary/5 shadow-sm" 
+                    : "border-border/50 hover:border-border hover:bg-muted/30"
                 )}
-                onClick={() => setOptimizationMethod("daily-report")}
               >
-                <RadioGroupItem value="daily-report" id="daily-report" className="h-3.5 w-3.5" />
-                <Label htmlFor="daily-report" className="text-xs cursor-pointer flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  基于日报优化
-                </Label>
-              </div>
-              <div 
+                <RadioGroupItem value="daily-report" id="daily-report" className="sr-only" />
+                <div className={cn(
+                  "h-9 w-9 rounded-lg flex items-center justify-center",
+                  optimizationMethod === "daily-report" ? "bg-primary/15" : "bg-muted/50"
+                )}>
+                  <Calendar className={cn(
+                    "h-4 w-4",
+                    optimizationMethod === "daily-report" ? "text-primary" : "text-muted-foreground"
+                  )} />
+                </div>
+                <div>
+                  <p className={cn(
+                    "text-xs font-medium",
+                    optimizationMethod === "daily-report" ? "text-primary" : "text-foreground"
+                  )}>基于日报优化</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">分析日报数据</p>
+                </div>
+              </label>
+              <label
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all",
+                  "flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all",
                   optimizationMethod === "badcase" 
-                    ? "border-primary/40 bg-primary/5" 
-                    : "border-border/50 hover:border-border"
+                    ? "border-primary bg-primary/5 shadow-sm" 
+                    : "border-border/50 hover:border-border hover:bg-muted/30"
                 )}
-                onClick={() => setOptimizationMethod("badcase")}
               >
-                <RadioGroupItem value="badcase" id="badcase" className="h-3.5 w-3.5" />
-                <Label htmlFor="badcase" className="text-xs cursor-pointer flex items-center gap-1.5">
-                  <Database className="h-3.5 w-3.5 text-muted-foreground" />
-                  基于具体BadCase
-                </Label>
-              </div>
+                <RadioGroupItem value="badcase" id="badcase" className="sr-only" />
+                <div className={cn(
+                  "h-9 w-9 rounded-lg flex items-center justify-center",
+                  optimizationMethod === "badcase" ? "bg-primary/15" : "bg-muted/50"
+                )}>
+                  <Database className={cn(
+                    "h-4 w-4",
+                    optimizationMethod === "badcase" ? "text-primary" : "text-muted-foreground"
+                  )} />
+                </div>
+                <div>
+                  <p className={cn(
+                    "text-xs font-medium",
+                    optimizationMethod === "badcase" ? "text-primary" : "text-foreground"
+                  )}>基于BadCase</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">分析具体案例</p>
+                </div>
+              </label>
             </RadioGroup>
           </div>
 
           {/* Daily Report Params */}
           {optimizationMethod === "daily-report" && (
-            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="space-y-1.5">
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="space-y-2">
                 <Label className="text-xs font-medium text-foreground">日期</Label>
                 <Input
                   type="date"
                   value={dailyDate}
                   onChange={(e) => setDailyDate(e.target.value)}
-                  className="h-9 text-xs rounded-xl border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30"
+                  className="h-10 text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label className="text-xs font-medium text-foreground">业务场景</Label>
                 <Input
                   placeholder="例如：退款、配送、投诉..."
                   value={businessScenario}
                   onChange={(e) => setBusinessScenario(e.target.value)}
-                  className="h-9 text-xs rounded-xl border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30"
+                  className="h-10 text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
             </div>
@@ -410,8 +446,8 @@ export function HumanCollaboration({
 
           {/* BadCase Params */}
           {optimizationMethod === "badcase" && (
-            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="space-y-1.5">
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="space-y-2">
                 <Label className="text-xs font-medium text-foreground">
                   SessionId集合 <span className="text-destructive">*</span>
                 </Label>
@@ -419,30 +455,30 @@ export function HumanCollaboration({
                   placeholder="输入SessionId，多个用逗号或换行分隔..."
                   value={sessionIds}
                   onChange={(e) => setSessionIds(e.target.value)}
-                  className="min-h-[80px] text-xs rounded-xl border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
+                  className="min-h-[90px] text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground flex items-center gap-1">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
                   人工问题分析
-                  <span className="text-muted-foreground font-normal">（可选）</span>
+                  <span className="text-muted-foreground font-normal text-[10px]">（可选）</span>
                 </Label>
                 <Textarea
                   placeholder="输入您对这些Case的初步分析..."
                   value={manualAnalysis}
                   onChange={(e) => setManualAnalysis(e.target.value)}
-                  className="min-h-[60px] text-xs rounded-xl border-border/50 focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
+                  className="min-h-[70px] text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
                 />
               </div>
             </div>
           )}
         </CardContent>
 
-        <CardFooter className="px-4 pb-4 pt-0">
+        <CardFooter className="px-5 pb-5 pt-0">
           <Button
             onClick={handleStartOptimization}
             disabled={!canStart || isProcessing}
-            className="w-full h-10 rounded-xl gap-2 shadow-sm hover:shadow transition-all"
+            className="w-full h-11 rounded-xl gap-2 text-sm font-medium shadow-sm hover:shadow transition-all"
           >
             <Play className="h-4 w-4" />
             开始优化
@@ -452,16 +488,70 @@ export function HumanCollaboration({
     )
   }
 
+  // Unified Modifications Display Component
+  const renderModifications = () => {
+    if (modifications.length === 0) return null
+
+    return (
+      <Card className="border border-violet-200/60 bg-gradient-to-br from-violet-50/50 to-purple-50/30 shadow-sm rounded-2xl overflow-hidden">
+        <CardHeader className="pb-3 pt-4 px-5">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center">
+              <Edit3 className="h-4 w-4 text-violet-600" />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="text-sm font-semibold text-foreground">已添加的修改意见</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                {modifications.length} 条意见，点击右侧版本对比添加更多
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="px-5 pb-5 pt-0 space-y-3">
+          {modifications.map((mod, idx) => (
+            <div key={mod.id} className="p-4 bg-background/80 rounded-xl border border-border/30 shadow-sm">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-semibold text-violet-700">
+                    {idx + 1}
+                  </span>
+                  <p className="text-xs font-medium text-foreground">{mod.component}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 shrink-0 hover:bg-destructive/10 hover:text-destructive rounded-lg"
+                  onClick={() => onRemoveModification?.(mod.id)}
+                >
+                  <span className="sr-only">删除</span>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-2.5 line-clamp-2 leading-relaxed">{mod.originalContent}</p>
+              <Textarea
+                value={mod.modifiedContent}
+                onChange={(e) => onUpdateModification?.(mod.id, e.target.value)}
+                placeholder="调整为..."
+                className="min-h-[70px] text-sm rounded-xl border-border/30 bg-muted/20 focus-visible:ring-1 focus-visible:ring-violet-300 resize-none"
+              />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    )
+  }
+
   // Form Mode View
   const renderFormMode = () => {
     const activeTasks = pendingTasks.filter(t => !(t as PendingTask & { completed?: boolean }).completed)
     const completedTasks = pendingTasks.filter(t => (t as PendingTask & { completed?: boolean }).completed)
     const showStartForm = currentStep === "idle" && activeTasks.length === 0
+    const showModifications = (currentStep === "confirmation" || currentStep === "optimization") && modifications.length > 0
 
     return (
       <div className="flex h-full flex-col">
-        <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
-          <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto p-5" ref={scrollRef}>
+          <div className="space-y-5 max-w-xl mx-auto">
             {/* Start Form */}
             {showStartForm && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -471,80 +561,49 @@ export function HumanCollaboration({
 
             {/* Active Tasks */}
             {activeTasks.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">待处理任务</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">待处理任务</h3>
+                </div>
                 {activeTasks.map((task) => (
                   <div key={task.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    {renderTaskCard(task as PendingTask & { completed?: boolean; selectedOption?: string }, true)}
+                    {renderTaskCard(task as PendingTask & { completed?: boolean; selectedOption?: string }, false)}
                   </div>
                 ))}
               </div>
             )}
             
-            {/* Modifications Display for Confirmation and Optimization Steps */}
-            {(currentStep === "confirmation" || (currentStep === "optimization" && modifications.length > 0)) && modifications.length > 0 && (
-              <Card className="border border-border/50 shadow-sm rounded-2xl">
-                <CardHeader className="pb-2 px-4 pt-4">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Edit3 className="h-4 w-4 text-primary" />
-                    已添加的修改意见 ({modifications.length})
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    点击右侧版本对比中「有变化」的组件可添加更多修改意见
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="px-4 pb-4 pt-2 space-y-3">
-                  {modifications.map((mod, idx) => (
-                    <div key={mod.id} className="p-3 bg-muted/30 rounded-xl border border-border/30">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className="text-xs font-medium text-foreground">
-                          {idx + 1}. {mod.component}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 shrink-0"
-                          onClick={() => onRemoveModification?.(mod.id)}
-                        >
-                          <span className="sr-only">删除</span>
-                          <svg className="h-3.5 w-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </Button>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mb-1.5 line-clamp-2">{mod.originalContent}</p>
-                      <Textarea
-                        value={mod.modifiedContent}
-                        onChange={(e) => onUpdateModification?.(mod.id, e.target.value)}
-                        placeholder="调整为..."
-                        className="min-h-[60px] text-xs rounded-lg border-border/30 bg-background focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
-                      />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+            {/* Modifications Display */}
+            {showModifications && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {renderModifications()}
+              </div>
             )}
             
             {/* Completed Tasks */}
             {completedTasks.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">已完成任务</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">已完成任务</h3>
+                </div>
                 {completedTasks.map((task) => (
-                  <div key={task.id} className="opacity-70">
-                    {renderTaskCard(task as PendingTask & { completed?: boolean; selectedOption?: string }, true)}
+                  <div key={task.id} className="opacity-60 hover:opacity-80 transition-opacity">
+                    {renderTaskCard(task as PendingTask & { completed?: boolean; selectedOption?: string }, false)}
                   </div>
                 ))}
               </div>
             )}
             
             {/* Empty state when workflow is running */}
-            {!showStartForm && activeTasks.length === 0 && completedTasks.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                  <ListChecks className="h-6 w-6 text-muted-foreground/50" />
+            {!showStartForm && activeTasks.length === 0 && completedTasks.length === 0 && !showModifications && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-5">
+                  <ListChecks className="h-7 w-7 text-muted-foreground/50" />
                 </div>
-                <p className="text-sm text-muted-foreground">流程执行中...</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">需要确认的任务将显示在这里</p>
+                <p className="text-sm font-medium text-muted-foreground">流程执行中...</p>
+                <p className="text-xs text-muted-foreground/70 mt-1.5">需要确认的任务将显示在这里</p>
               </div>
             )}
           </div>
@@ -556,6 +615,7 @@ export function HumanCollaboration({
   // Chat Mode View
   const renderChatMode = () => {
     const showStartCard = currentStep === "idle" && pendingTasks.length === 0
+    const showModifications = (currentStep === "confirmation" || currentStep === "optimization") && modifications.length > 0
 
     return (
       <div className="flex h-full flex-col">
@@ -568,13 +628,15 @@ export function HumanCollaboration({
                 return (
                   <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-sm shadow-amber-500/20">
-                        <Sparkles className="h-3.5 w-3.5 text-white" />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-sm">
+                        <Sparkles className="h-4 w-4 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-sm font-medium text-foreground">优化助手</span>
-                          <span className="text-xs text-muted-foreground">需要确认</span>
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <span className="text-sm font-semibold text-foreground">优化助手</span>
+                          <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 rounded-full bg-amber-100/80 text-amber-700 border-0">
+                            需要确认
+                          </Badge>
                         </div>
                         {renderTaskCard(message.taskCard as PendingTask & { completed?: boolean; selectedOption?: string })}
                       </div>
@@ -588,7 +650,7 @@ export function HumanCollaboration({
                 return (
                   <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
                     <div className="flex items-start gap-3 justify-end">
-                      <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-primary-foreground shadow-sm shadow-primary/20">
+                      <div className="max-w-[85%] rounded-2xl rounded-br-lg bg-primary px-4 py-3 text-primary-foreground shadow-sm">
                         <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                       </div>
                     </div>
@@ -600,12 +662,12 @@ export function HumanCollaboration({
               return (
                 <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-sm shadow-primary/20">
-                      <Sparkles className="h-3.5 w-3.5 text-white" />
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-sm">
+                      <Sparkles className="h-4 w-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-sm font-medium text-foreground">优化助手</span>
+                        <span className="text-sm font-semibold text-foreground">优化助手</span>
                       </div>
                       <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
                         {message.content}
@@ -620,13 +682,15 @@ export function HumanCollaboration({
             {showStartCard && (
               <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-sm shadow-primary/20">
-                    <Sparkles className="h-3.5 w-3.5 text-white" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-sm">
+                    <Sparkles className="h-4 w-4 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-medium text-foreground">优化助手</span>
-                      <span className="text-xs text-muted-foreground">配置参数</span>
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <span className="text-sm font-semibold text-foreground">优化助手</span>
+                      <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 rounded-full bg-primary/10 text-primary border-0">
+                        配置参数
+                      </Badge>
                     </div>
                     {renderStartForm()}
                   </div>
@@ -635,48 +699,20 @@ export function HumanCollaboration({
             )}
 
             {/* Modifications Display in Chat Mode */}
-            {(currentStep === "confirmation" || currentStep === "optimization") && modifications.length > 0 && (
+            {showModifications && (
               <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-purple-500 shadow-sm shadow-violet-500/20">
-                    <Edit3 className="h-3.5 w-3.5 text-white" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-purple-500 shadow-sm">
+                    <Edit3 className="h-4 w-4 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-medium text-foreground">已添加的修改意见</span>
-                      <span className="text-xs text-muted-foreground">{modifications.length} 条</span>
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <span className="text-sm font-semibold text-foreground">修改意见</span>
+                      <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 rounded-full bg-violet-100/80 text-violet-700 border-0">
+                        {modifications.length} 条
+                      </Badge>
                     </div>
-                    <Card className="border border-border/50 shadow-sm rounded-2xl">
-                      <CardContent className="px-4 py-3 space-y-3">
-                        {modifications.map((mod, idx) => (
-                          <div key={mod.id} className="p-3 bg-muted/30 rounded-xl border border-border/30">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <p className="text-xs font-medium text-foreground">
-                                {idx + 1}. {mod.component}
-                              </p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 shrink-0"
-                                onClick={() => onRemoveModification?.(mod.id)}
-                              >
-                                <span className="sr-only">删除</span>
-                                <svg className="h-3.5 w-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </Button>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground mb-1.5 line-clamp-2">{mod.originalContent}</p>
-                            <Textarea
-                              value={mod.modifiedContent}
-                              onChange={(e) => onUpdateModification?.(mod.id, e.target.value)}
-                              placeholder="调整为..."
-                              className="min-h-[60px] text-xs rounded-lg border-border/30 bg-background focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
-                            />
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
+                    {renderModifications()}
                   </div>
                 </div>
               </div>
@@ -686,13 +722,13 @@ export function HumanCollaboration({
             {isProcessing && (
               <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-sm shadow-primary/20">
-                    <Sparkles className="h-3.5 w-3.5 text-white" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-sm">
+                    <Sparkles className="h-4 w-4 text-white" />
                   </div>
-                  <div className="flex items-center gap-1.5 py-2 px-3 bg-muted/40 rounded-xl">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary/50 animate-bounce [animation-delay:-0.3s]" />
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary/50 animate-bounce [animation-delay:-0.15s]" />
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary/50 animate-bounce" />
+                  <div className="flex items-center gap-1.5 py-2.5 px-4 bg-muted/40 rounded-2xl">
+                    <div className="h-2 w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:-0.3s]" />
+                    <div className="h-2 w-2 rounded-full bg-primary/50 animate-bounce [animation-delay:-0.15s]" />
+                    <div className="h-2 w-2 rounded-full bg-primary/50 animate-bounce" />
                   </div>
                 </div>
               </div>
@@ -701,14 +737,14 @@ export function HumanCollaboration({
         </div>
 
         {/* Input Area */}
-        <div className="shrink-0 bg-transparent">
-          <div className="max-w-2xl mx-auto px-5 pb-4">
+        <div className="shrink-0 bg-gradient-to-t from-background to-transparent pt-2">
+          <div className="max-w-2xl mx-auto px-5 pb-5">
             <div 
               className={cn(
                 "relative flex items-end gap-2 rounded-2xl border bg-card transition-all duration-200",
                 isFocused 
-                  ? "border-primary/50 shadow-md ring-1 ring-primary/10" 
-                  : "border-border shadow-sm hover:border-border/80 hover:shadow"
+                  ? "border-primary/50 shadow-lg ring-2 ring-primary/10" 
+                  : "border-border shadow-sm hover:shadow-md hover:border-border/80"
               )}
             >
               <textarea
@@ -725,14 +761,14 @@ export function HumanCollaboration({
                   }
                 }}
                 rows={1}
-                className="flex-1 resize-none bg-transparent px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px]"
-                style={{ minHeight: "44px" }}
+                className="flex-1 resize-none bg-transparent px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px]"
+                style={{ minHeight: "48px" }}
               />
-              <div className="flex items-center gap-2 pr-2 pb-2">
+              <div className="flex items-center gap-2 pr-2.5 pb-2.5">
                 <Button
                   size="icon"
                   className={cn(
-                    "h-8 w-8 rounded-full transition-all duration-200",
+                    "h-9 w-9 rounded-xl transition-all duration-200",
                     chatInput.trim() 
                       ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow" 
                       : "bg-muted text-muted-foreground cursor-not-allowed"
@@ -744,7 +780,7 @@ export function HumanCollaboration({
                 </Button>
               </div>
             </div>
-            <p className="text-center text-[11px] text-muted-foreground mt-2">
+            <p className="text-center text-[11px] text-muted-foreground/70 mt-2.5">
               按 Enter 发送，Shift + Enter 换行
             </p>
           </div>
@@ -770,36 +806,36 @@ export function HumanCollaboration({
   }
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-background to-muted/10">
+    <div className="flex h-full flex-col bg-gradient-to-b from-background via-background to-muted/20">
       {/* Mode Toggle Header */}
-      <div className="shrink-0 border-b border-border/50 bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center justify-center gap-1 p-2">
+      <div className="shrink-0 border-b border-border/40 bg-card/80 backdrop-blur-sm">
+        <div className="flex items-center justify-center gap-1.5 p-3">
           <Button
-            variant={mode === "chat" ? "secondary" : "ghost"}
+            variant="ghost"
             size="sm"
             className={cn(
-              "h-8 px-4 rounded-full text-xs font-medium transition-all",
+              "h-9 px-5 rounded-xl text-xs font-medium transition-all",
               mode === "chat" 
-                ? "bg-primary/10 text-primary border border-primary/20" 
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90" 
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
             onClick={() => setMode("chat")}
           >
-            <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+            <MessageSquare className="mr-2 h-4 w-4" />
             对话模式
           </Button>
           <Button
-            variant={mode === "form" ? "secondary" : "ghost"}
+            variant="ghost"
             size="sm"
             className={cn(
-              "h-8 px-4 rounded-full text-xs font-medium transition-all",
+              "h-9 px-5 rounded-xl text-xs font-medium transition-all",
               mode === "form" 
-                ? "bg-primary/10 text-primary border border-primary/20" 
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90" 
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
             onClick={() => setMode("form")}
           >
-            <ListChecks className="mr-1.5 h-3.5 w-3.5" />
+            <ListChecks className="mr-2 h-4 w-4" />
             表单模式
           </Button>
         </div>
