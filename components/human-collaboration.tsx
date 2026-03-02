@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Send, User, Bot, CheckCircle2, Edit3, AlertTriangle } from "lucide-react"
 import type { PendingTask, WorkflowStep } from "@/app/page"
@@ -309,7 +308,7 @@ export function HumanCollaboration({
         </div>
       </div>
 
-      <ScrollArea className="flex-1" ref={scrollRef}>
+      <div className="flex-1 overflow-y-auto" ref={scrollRef}>
         <div className="space-y-4 p-4">
           {chatMessages.map((message) => {
             // Render task card
@@ -364,7 +363,7 @@ export function HumanCollaboration({
             )
           })}
         </div>
-      </ScrollArea>
+      </div>
 
       <div className="shrink-0 border-t bg-card p-4">
         <div className="flex gap-2">
