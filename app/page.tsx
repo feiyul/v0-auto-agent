@@ -7,7 +7,7 @@ import { LogsReportsTabs } from "@/components/logs-reports-tabs"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { Sparkles } from "lucide-react"
 
-export type WorkflowStep = "analysis" | "suggestions" | "optimization" | "idle"
+export type WorkflowStep = "analysis" | "suggestions" | "optimization" | "confirmation" | "idle"
 
 export interface ReportSection {
   id: string
@@ -64,7 +64,7 @@ export default function HomePage() {
     setCurrentStep("analysis")
 
     // Store params for later use if needed
-    console.log("[v0] Starting workflow with params:", params)
+    // params can be used for customized analysis based on method
 
     setTimeout(() => {
       setTimeout(() => {
@@ -106,6 +106,8 @@ export default function HomePage() {
     } else if (task.step === "suggestions" && result === "确认优化建议") {
       proceedToOptimization()
     } else if (task.step === "optimization") {
+      proceedToConfirmation()
+    } else if (task.step === "confirmation") {
       completeWorkflow()
     }
   }
@@ -157,8 +159,8 @@ export default function HomePage() {
               id: "task-3",
               step: "optimization",
               title: "确认优化结果",
-              description: "优化已完成，请确认结果或提出调整需求",
-              options: ["确认完成", "需要调整"],
+              description: "智能优化已完成，请确认结果并进入人工确认阶段",
+              options: ["进入人工确认", "需要调整"],
               requiresInput: true,
               inputLabel: "调整需求（可选）",
               inputPlaceholder: "如需调整，请描述具体需求...",
@@ -167,6 +169,33 @@ export default function HomePage() {
           setIsProcessing(false)
         }, 1500)
       }, 1500)
+    }, 1000)
+  }
+
+  const proceedToConfirmation = () => {
+    setIsProcessing(true)
+    setCurrentStep("confirmation")
+
+    setTimeout(() => {
+      addReport(
+        "confirmation",
+        "人工确认报告",
+        `## 待确认的优化内容\n\n### AgentPrompt 变更\n\n**智能总控Agent**\n- 新增"严禁虚假承诺与口头执行"条款\n- 强制要求话术承诺与工具调用必须同步\n- 新增"信号核对"优先级最高的决策依据\n\n### 知识库变更\n\n**调度场景知识**\n- 更新调度阈值判断规则\n- 新增15分钟关键时间节点说明\n\n### 服务策略变更\n\n**转人工挽回**\n- 优化触发条件判断逻辑\n- 增加情绪识别权重\n\n---\n\n请在右侧「版本对比」中查看详细变更内容，您可以：\n1. 点击「有变化」的组件添加修改意见\n2. 使用「人工优化」功能进行批量调整\n3. 确认无误后点击「同步线上」发布变更`
+      )
+
+      setPendingTasks([
+        {
+          id: "task-4",
+          step: "confirmation",
+          title: "人工确认优化内容",
+          description: "请在右侧版本对比中查看并确认优化内容，添加修改意见后可重新优化，或直接确认同步线上",
+          options: ["确认并同步", "添加修改意见重新优化"],
+          requiresInput: true,
+          inputLabel: "总体修改建议（可选）",
+          inputPlaceholder: "请输入您的总体修改建议...",
+        },
+      ])
+      setIsProcessing(false)
     }, 1000)
   }
 

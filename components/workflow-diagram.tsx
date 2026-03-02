@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { Search, Lightbulb, Zap, CheckCircle2, Loader2 } from "lucide-react"
+import { Search, Lightbulb, Zap, UserCheck, CheckCircle2, Loader2 } from "lucide-react"
 import type { WorkflowStep } from "@/app/page"
 
 interface WorkflowDiagramProps {
@@ -29,6 +29,12 @@ const steps = [
     icon: Zap,
     description: "执行知识库和Prompt的自动优化",
   },
+  {
+    id: "confirmation" as const,
+    label: "人工确认",
+    icon: UserCheck,
+    description: "查看版本对比，确认或调整优化内容",
+  },
 ]
 
 export function WorkflowDiagram({ currentStep, isProcessing }: WorkflowDiagramProps) {
@@ -39,7 +45,7 @@ export function WorkflowDiagram({ currentStep, isProcessing }: WorkflowDiagramPr
   }, [])
 
   const getStepStatus = (stepId: WorkflowStep): "pending" | "processing" | "completed" => {
-    const stepOrder = ["analysis", "suggestions", "optimization"]
+    const stepOrder = ["analysis", "suggestions", "optimization", "confirmation"]
     const currentIndex = stepOrder.indexOf(currentStep)
     const stepIndex = stepOrder.indexOf(stepId)
 
@@ -68,7 +74,7 @@ export function WorkflowDiagram({ currentStep, isProcessing }: WorkflowDiagramPr
           <div className="h-10 w-28 bg-muted/50 animate-pulse rounded-full" />
         </div>
         <div className="flex items-start justify-between gap-4">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex flex-1 items-start gap-3">
               <div className="flex flex-col items-center">
                 <div className="h-14 w-14 bg-muted/50 animate-pulse rounded-2xl" />

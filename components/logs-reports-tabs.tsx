@@ -30,6 +30,7 @@ const stepLabels: Record<WorkflowStep, string> = {
   analysis: "场景分析",
   suggestions: "优化建议",
   optimization: "智能优化",
+  confirmation: "人工确认",
 }
 
 // Mock version comparison data
@@ -246,7 +247,8 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                               "flex h-9 w-9 items-center justify-center rounded-xl",
                               report.step === "analysis" && "bg-gradient-to-br from-blue-400/20 to-cyan-400/20",
                               report.step === "suggestions" && "bg-gradient-to-br from-amber-400/20 to-orange-400/20",
-                              report.step === "optimization" && "bg-gradient-to-br from-emerald-400/20 to-teal-400/20"
+                              report.step === "optimization" && "bg-gradient-to-br from-emerald-400/20 to-teal-400/20",
+                              report.step === "confirmation" && "bg-gradient-to-br from-violet-400/20 to-purple-400/20"
                             )}
                           >
                             <Sparkles 
@@ -254,7 +256,8 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                                 "h-5 w-5",
                                 report.step === "analysis" && "text-blue-500",
                                 report.step === "suggestions" && "text-amber-500",
-                                report.step === "optimization" && "text-emerald-500"
+                                report.step === "optimization" && "text-emerald-500",
+                                report.step === "confirmation" && "text-violet-500"
                               )} 
                             />
                           </div>
@@ -264,7 +267,8 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                               "text-xs font-medium px-3 py-1 rounded-full border-0",
                               report.step === "analysis" && "bg-blue-100/80 text-blue-600",
                               report.step === "suggestions" && "bg-amber-100/80 text-amber-600",
-                              report.step === "optimization" && "bg-emerald-100/80 text-emerald-600"
+                              report.step === "optimization" && "bg-emerald-100/80 text-emerald-600",
+                              report.step === "confirmation" && "bg-violet-100/80 text-violet-600"
                             )}
                           >
                             {stepLabels[report.step]}
