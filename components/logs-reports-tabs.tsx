@@ -5,7 +5,18 @@ import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileText, Sparkles, GitCompare, ChevronDown, ChevronUp } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { FileText, Sparkles, GitCompare, ChevronDown, ChevronUp, X, Trash2, Upload, Pencil } from "lucide-react"
 import type { ReportSection, WorkflowStep } from "@/app/page"
 import ReactMarkdown from "react-markdown"
 
@@ -32,6 +43,7 @@ const versionComparisonData = {
     version: "v2",
     label: "最优版本",
     score: 92.5,
+    updateTime: "2026-02-05 17:43:40",
   },
   components: {
     agentPrompt: [
@@ -82,10 +94,34 @@ const versionComparisonData = {
   },
 }
 
+interface ModificationItem {
+  id: string
+  component: string
+  originalContent: string
+  modifiedContent: string
+}
+
 export function LogsReportsTabs({ reports, showVersionComparison = true }: ReportsPanelProps) {
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState("reports")
   const [expandedDiffs, setExpandedDiffs] = useState<Record<number, boolean>>({})
+  
+  // Dialog states
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false)
+  const [manualOptDialogOpen, setManualOptDialogOpen] = useState(false)
+  const [syncConfirmed, setSyncConfirmed] = useState(false)
+  
+  // Modification states
+  const [modifications, setModifications] = useState<ModificationItem[]>([
+    {
+      id: "1",
+      component: "AgentPrompt / 智能总控Agent",
+      originalContent: "行为准则: 你是唯一的决策者，必须根据商家诉求动态选择知识库，严格依据知识库做出专业判断，并生成高质量话术。",
+      modifiedContent: "调整为2项",
+    },
+  ])
+  const [overallSuggestion, setOverallSuggestion] = useState("")
+  const [editingModification, setEditingModification] = useState<ModificationItem | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -102,6 +138,47 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
 
   const toggleDiff = (index: number) => {
     setExpandedDiffs(prev => ({ ...prev, [index]: !prev[index] }))
+  }
+
+  const handleRemoveModification = (id: string) => {
+    setModifications(prev => prev.filter(m => m.id !== id))
+  }
+
+  const handleAddModification = (component: string, originalContent: string) => {
+    const newMod: ModificationItem = {
+      id: Date.now().toString(),
+      component,
+      originalContent,
+      modifiedContent: "",
+    }
+    setEditingModification(newMod)
+  }
+
+  const handleSaveModification = () => {
+    if (!editingModification) return
+    
+    if (modifications.find(m => m.id === editingModification.id)) {
+      setModifications(prev => prev.map(m => 
+        m.id === editingModification.id ? editingModification : m
+      ))
+    } else {
+      setModifications(prev => [...prev, editingModification])
+    }
+    setEditingModification(null)
+  }
+
+  const handleSync = () => {
+    // In real app, this would call an API
+    console.log("Syncing to production...")
+    setSyncDialogOpen(false)
+    setSyncConfirmed(false)
+  }
+
+  const handleManualOptimize = () => {
+    // In real app, this would trigger the manual optimization workflow
+    console.log("Starting manual optimization with modifications:", modifications)
+    console.log("Overall suggestion:", overallSuggestion)
+    setManualOptDialogOpen(false)
   }
 
   if (!mounted) {
@@ -265,6 +342,29 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Action Buttons */}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">版本对比</h2>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      className="gap-2 rounded-full border-primary text-primary hover:bg-primary/5"
+                      onClick={() => setManualOptDialogOpen(true)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      人工优化
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="gap-2 rounded-full"
+                      onClick={() => setSyncDialogOpen(true)}
+                    >
+                      <Upload className="h-4 w-4" />
+                      同步线上
+                    </Button>
+                  </div>
+                </div>
+
                 {/* Version Cards */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="rounded-2xl border-2 border-red-200 bg-red-50/30 p-5">
@@ -304,11 +404,15 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                           {versionComparisonData.components.agentPrompt.map((item) => (
                             <button
                               key={item.name}
+                              onClick={() => item.hasChange && handleAddModification(
+                                `AgentPrompt / ${item.name}`,
+                                "行为准则: 你是唯一的决策者，必须根据商家诉求动态选择知识库，严格依据知识库做出专业判断，并生成高质量话术。"
+                              )}
                               className={cn(
                                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                                 item.hasChange 
-                                  ? "bg-primary/10 text-primary border border-primary/30" 
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                  ? "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 cursor-pointer" 
+                                  : "bg-muted text-muted-foreground"
                               )}
                             >
                               {item.name}
@@ -339,7 +443,7 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                                 item.hasChange 
                                   ? "bg-primary/10 text-primary border border-primary/30" 
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                  : "bg-muted text-muted-foreground"
                               )}
                             >
                               {item.name}
@@ -370,7 +474,7 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                                 item.hasChange 
                                   ? "bg-primary/10 text-primary border border-primary/30" 
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                  : "bg-muted text-muted-foreground"
                               )}
                             >
                               {item.name}
@@ -416,7 +520,7 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                         <div key={index} className="rounded-xl border border-border overflow-hidden">
                           <button
                             onClick={() => toggleDiff(index)}
-                            className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+                            className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors"
                           >
                             <span className="text-sm font-medium text-foreground">变更 {index + 1}</span>
                             {expandedDiffs[index] ? (
@@ -425,15 +529,19 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                               <ChevronDown className="h-4 w-4 text-muted-foreground" />
                             )}
                           </button>
-                          {(expandedDiffs[index] ?? true) && (
+                          {expandedDiffs[index] && (
                             <div className="grid grid-cols-2 divide-x divide-border">
                               <div className="p-4 bg-red-50/50">
-                                <p className="text-xs font-semibold text-red-600 mb-2">SEARCH（原内容）</p>
-                                <pre className="text-xs text-red-800/80 whitespace-pre-wrap font-mono leading-relaxed">{diff.search}</pre>
+                                <div className="mb-2 text-xs font-semibold text-red-600">SEARCH（原内容）</div>
+                                <pre className="text-xs text-red-800 whitespace-pre-wrap font-mono leading-relaxed">
+                                  {diff.search}
+                                </pre>
                               </div>
                               <div className="p-4 bg-green-50/50">
-                                <p className="text-xs font-semibold text-green-600 mb-2">REPLACE（新内容）</p>
-                                <pre className="text-xs text-green-800/80 whitespace-pre-wrap font-mono leading-relaxed">{diff.replace}</pre>
+                                <div className="mb-2 text-xs font-semibold text-green-600">REPLACE（新内容）</div>
+                                <pre className="text-xs text-green-800 whitespace-pre-wrap font-mono leading-relaxed">
+                                  {diff.replace}
+                                </pre>
                               </div>
                             </div>
                           )}
@@ -442,11 +550,206 @@ export function LogsReportsTabs({ reports, showVersionComparison = true }: Repor
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Modifications Side Panel */}
+                {modifications.length > 0 && (
+                  <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">修改意见</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-3">
+                        {modifications.map((mod, idx) => (
+                          <div key={mod.id} className="p-3 bg-muted/30 rounded-xl">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground">{idx + 1}. {mod.component}</p>
+                                <p className="text-xs text-muted-foreground mt-1 truncate">{mod.originalContent}</p>
+                                <p className="text-xs text-primary mt-1">{mod.modifiedContent}</p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 shrink-0"
+                                onClick={() => handleRemoveModification(mod.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Sync to Production Dialog */}
+      <Dialog open={syncDialogOpen} onOpenChange={setSyncDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">同步线上</DialogTitle>
+            <DialogDescription className="sr-only">同步版本到生产环境</DialogDescription>
+          </DialogHeader>
+          <div className="py-6">
+            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 p-5 border border-blue-100">
+              <p className="text-sm text-muted-foreground mb-3">即将同步至生产环境的版本</p>
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl font-bold text-primary">{versionComparisonData.optimized.version}</span>
+                <span className="text-sm text-muted-foreground">
+                  更新时间：{versionComparisonData.optimized.updateTime}
+                </span>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex items-start gap-3">
+              <Checkbox
+                id="sync-confirm"
+                checked={syncConfirmed}
+                onCheckedChange={(checked) => setSyncConfirmed(checked === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="sync-confirm" className="text-sm font-medium text-foreground cursor-pointer">
+                我已确认版本差异无误，同意同步到线上
+              </label>
+            </div>
+            
+            <p className="mt-4 text-xs text-muted-foreground">
+              请仔细检查上述变更内容，确认无误后勾选此选项以启用同步按钮。同步操作将影响生产环境，请谨慎操作。
+            </p>
+          </div>
+          <DialogFooter className="gap-3">
+            <Button variant="outline" onClick={() => setSyncDialogOpen(false)} className="rounded-full">
+              取消
+            </Button>
+            <Button 
+              onClick={handleSync} 
+              disabled={!syncConfirmed}
+              className="rounded-full"
+            >
+              确认同步线上
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Optimization Dialog */}
+      <Dialog open={manualOptDialogOpen} onOpenChange={setManualOptDialogOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">人工优化</DialogTitle>
+            <DialogDescription>
+              查看并管理对版本对比内容的修改意见，填写总体修改建议后开始人工优化
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-6">
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-3">v2 版本内容的优化评论</h4>
+              {modifications.length === 0 ? (
+                <div className="text-sm text-muted-foreground p-4 bg-muted/30 rounded-xl text-center">
+                  暂无修改意见，点击版本对比中「有变化」的组件添加
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {modifications.map((mod, idx) => (
+                    <div key={mod.id} className="p-4 border border-border rounded-xl">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <p className="text-sm font-medium text-foreground">
+                          {idx + 1}. {mod.component}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => handleRemoveModification(mod.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">{mod.originalContent}</p>
+                      <Textarea
+                        value={mod.modifiedContent}
+                        onChange={(e) => {
+                          setModifications(prev => prev.map(m => 
+                            m.id === mod.id ? { ...m, modifiedContent: e.target.value } : m
+                          ))
+                        }}
+                        placeholder="调整为..."
+                        className="min-h-[80px] rounded-xl text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-3">总体修改建议</h4>
+              <Textarea
+                value={overallSuggestion}
+                onChange={(e) => setOverallSuggestion(e.target.value)}
+                placeholder="请输入对版本对比的总体修改建议（可选）"
+                className="min-h-[120px] rounded-xl text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={handleManualOptimize}
+              className="rounded-full"
+            >
+              开始人工优化
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Modification Popover */}
+      <Dialog open={!!editingModification} onOpenChange={(open) => !open && setEditingModification(null)}>
+        <DialogContent className="sm:max-w-[500px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">添加修改意见</DialogTitle>
+            <DialogDescription className="sr-only">添加组件修改意见</DialogDescription>
+          </DialogHeader>
+          {editingModification && (
+            <div className="py-4 space-y-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">文档：{editingModification.component}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-foreground mb-2">选中的内容</p>
+                <div className="p-3 bg-muted/30 rounded-xl text-sm text-muted-foreground">
+                  {editingModification.originalContent}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-foreground mb-2">修改意见</p>
+                <Textarea
+                  value={editingModification.modifiedContent}
+                  onChange={(e) => setEditingModification({ 
+                    ...editingModification, 
+                    modifiedContent: e.target.value 
+                  })}
+                  placeholder="调整为..."
+                  className="min-h-[100px] rounded-xl text-sm"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditingModification(null)} className="rounded-full">
+              取消
+            </Button>
+            <Button onClick={handleSaveModification} className="rounded-full">
+              确定
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
