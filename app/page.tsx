@@ -5,6 +5,7 @@ import { WorkflowDiagram } from "@/components/workflow-diagram"
 import { HumanCollaboration } from "@/components/human-collaboration"
 import { LogsReportsTabs } from "@/components/logs-reports-tabs"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
+import { Sparkles } from "lucide-react"
 
 export type WorkflowStep = "analysis" | "suggestions" | "optimization" | "idle"
 
@@ -160,21 +161,39 @@ export default function HomePage() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <header className="flex h-14 shrink-0 items-center border-b bg-card px-6">
-        <h1 className="text-lg font-semibold text-foreground">Auto-Agent 智能客服优化系统</h1>
+      {/* Header */}
+      <header className="flex h-16 shrink-0 items-center bg-card/80 backdrop-blur-sm px-8">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/80 to-primary shadow-md shadow-primary/20">
+            <Sparkles className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-foreground">Auto-Agent</h1>
+            <p className="text-[11px] text-muted-foreground -mt-0.5">智能客服优化系统</p>
+          </div>
+        </div>
       </header>
 
-      <main className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
+      {/* Main Content */}
+      <main className="flex-1 overflow-hidden p-4">
+        <ResizablePanelGroup direction="horizontal" className="h-full gap-4">
           <ResizablePanel defaultSize={50} minSize={35}>
-            <div className="flex h-full flex-col">
-              <div className="shrink-0 border-b bg-card p-4">
+            <div className="flex h-full flex-col rounded-3xl bg-card shadow-lg overflow-hidden">
+              {/* Workflow Section */}
+              <div className="shrink-0 p-6 bg-gradient-to-b from-card to-muted/10">
                 <WorkflowDiagram
                   currentStep={currentStep}
                   isProcessing={isProcessing}
                   onStart={startWorkflow}
                 />
               </div>
+              
+              {/* Separator */}
+              <div className="px-6">
+                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+              </div>
+              
+              {/* Chat Section */}
               <div className="flex-1 overflow-hidden">
                 <HumanCollaboration
                   pendingTasks={pendingTasks}
@@ -187,10 +206,12 @@ export default function HomePage() {
             </div>
           </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          <ResizableHandle className="w-1 bg-transparent hover:bg-primary/20 transition-colors rounded-full" />
 
           <ResizablePanel defaultSize={50} minSize={30}>
-            <LogsReportsTabs reports={reports} />
+            <div className="h-full rounded-3xl bg-card shadow-lg overflow-hidden">
+              <LogsReportsTabs reports={reports} />
+            </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       </main>

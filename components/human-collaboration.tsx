@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { Send, CheckCircle2, Edit3, AlertTriangle, Sparkles, ArrowUp } from "lucide-react"
+import { CheckCircle2, Edit3, AlertCircle, Sparkles, ArrowUp } from "lucide-react"
 import type { PendingTask, WorkflowStep } from "@/app/page"
 
 interface HumanCollaborationProps {
@@ -86,7 +86,6 @@ export function HumanCollaboration({
     })
   }, [pendingTasks])
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto"
@@ -178,43 +177,47 @@ export function HumanCollaboration({
     return (
       <Card
         className={cn(
-          "w-full border shadow-sm transition-all duration-200",
+          "w-full border-0 shadow-sm transition-all duration-300 rounded-3xl overflow-hidden",
           isCompleted
-            ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/20"
-            : "border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/20"
+            ? "bg-gradient-to-br from-emerald-50 to-teal-50/50"
+            : "bg-gradient-to-br from-amber-50/80 to-orange-50/50"
         )}
       >
-        <CardHeader className="pb-2 pt-3 px-4">
+        <CardHeader className="pb-2 pt-4 px-5">
           <div className="flex items-center justify-between">
             <Badge
               variant="secondary"
               className={cn(
-                "text-[10px] font-medium px-2 py-0.5",
+                "text-[10px] font-medium px-3 py-1 rounded-full border-0",
                 isCompleted 
-                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" 
-                  : "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+                  ? "bg-emerald-100/80 text-emerald-700" 
+                  : "bg-amber-100/80 text-amber-700"
               )}
             >
               {isCompleted ? "已确认" : stepLabels[task.step]}
             </Badge>
             {isCompleted ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <div className="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              </div>
             ) : (
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <div className="h-6 w-6 rounded-full bg-amber-100 flex items-center justify-center">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+              </div>
             )}
           </div>
-          <CardTitle className="text-sm font-semibold mt-2">{task.title}</CardTitle>
-          <CardDescription className="text-xs text-muted-foreground leading-relaxed">
+          <CardTitle className="text-sm font-semibold mt-3 text-foreground/90">{task.title}</CardTitle>
+          <CardDescription className="text-xs text-muted-foreground leading-relaxed mt-1">
             {task.description}
           </CardDescription>
         </CardHeader>
         
         {!isCompleted && (
           <>
-            <CardContent className="space-y-3 pt-0 px-4 pb-2">
+            <CardContent className="space-y-3 pt-0 px-5 pb-2">
               {(task.requiresInput || isEditing) && (
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                     {task.inputLabel || "补充说明"}
                   </label>
                   <Textarea
@@ -226,19 +229,24 @@ export function HumanCollaboration({
                         [task.id]: e.target.value,
                       }))
                     }
-                    className="min-h-[60px] resize-none text-xs bg-background/50 border-muted"
+                    className="min-h-[70px] resize-none text-xs bg-white/60 border-0 rounded-2xl shadow-inner focus-visible:ring-1 focus-visible:ring-primary/30"
                   />
                 </div>
               )}
             </CardContent>
             
-            <CardFooter className="flex flex-wrap gap-1.5 px-4 pb-3 pt-1">
+            <CardFooter className="flex flex-wrap gap-2 px-5 pb-4 pt-1">
               {task.options?.map((option) => (
                 <Button
                   key={option}
-                  variant={option.includes("确认") ? "default" : "outline"}
+                  variant={option.includes("确认") ? "default" : "secondary"}
                   size="sm"
-                  className="text-[11px] h-7 px-3"
+                  className={cn(
+                    "text-[11px] h-8 px-4 rounded-full transition-all",
+                    option.includes("确认") 
+                      ? "shadow-sm hover:shadow" 
+                      : "bg-white/60 hover:bg-white/80"
+                  )}
                   onClick={() => handleTaskConfirm(task.id, option)}
                 >
                   {option}
@@ -248,10 +256,10 @@ export function HumanCollaboration({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="ml-auto text-[11px] h-7 text-muted-foreground hover:text-foreground"
+                  className="ml-auto text-[11px] h-8 text-muted-foreground hover:text-foreground rounded-full"
                   onClick={() => toggleEditMode(task.id)}
                 >
-                  <Edit3 className="mr-1 h-3 w-3" />
+                  <Edit3 className="mr-1.5 h-3 w-3" />
                   {isEditing ? "收起" : "修改"}
                 </Button>
               )}
@@ -260,9 +268,9 @@ export function HumanCollaboration({
         )}
         
         {isCompleted && task.selectedOption && (
-          <CardContent className="px-4 pb-3 pt-0">
+          <CardContent className="px-5 pb-4 pt-0">
             <p className="text-[11px] text-muted-foreground">
-              已选择：<span className="font-medium text-foreground">{task.selectedOption}</span>
+              已选择：<span className="font-medium text-foreground/80">{task.selectedOption}</span>
             </p>
           </CardContent>
         )}
@@ -273,12 +281,12 @@ export function HumanCollaboration({
   if (!mounted) {
     return (
       <div className="flex h-full flex-col bg-background">
-        <div className="flex-1 p-4 space-y-4">
-          <div className="flex gap-3">
-            <div className="h-6 w-6 bg-muted animate-pulse rounded-full shrink-0" />
-            <div className="flex-1 space-y-2">
-              <div className="h-3 w-3/4 bg-muted animate-pulse rounded" />
-              <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+        <div className="flex-1 p-6 space-y-6">
+          <div className="flex gap-4 max-w-2xl mx-auto">
+            <div className="h-8 w-8 bg-muted/30 animate-pulse rounded-full shrink-0" />
+            <div className="flex-1 space-y-3">
+              <div className="h-4 w-3/4 bg-muted/30 animate-pulse rounded-full" />
+              <div className="h-4 w-1/2 bg-muted/30 animate-pulse rounded-full" />
             </div>
           </div>
         </div>
@@ -287,23 +295,23 @@ export function HumanCollaboration({
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col bg-gradient-to-b from-background to-muted/20">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto" ref={scrollRef}>
-        <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        <div className="max-w-2xl mx-auto px-5 py-8 space-y-8">
           {chatMessages.map((message) => {
             // Task card
             if (message.taskCard) {
               return (
-                <div key={message.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-sm">
-                      <Sparkles className="h-3.5 w-3.5 text-white" />
+                <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-md shadow-amber-500/20">
+                      <Sparkles className="h-4 w-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-medium text-foreground">优化助手</span>
-                        <span className="text-[10px] text-muted-foreground">需要确认</span>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-sm font-medium text-foreground">优化助手</span>
+                        <span className="text-xs text-muted-foreground">需要确认</span>
                       </div>
                       {renderTaskCard(message.taskCard as PendingTask & { completed?: boolean; selectedOption?: string })}
                     </div>
@@ -315,9 +323,9 @@ export function HumanCollaboration({
             // User message
             if (message.role === "user") {
               return (
-                <div key={message.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-start gap-3 justify-end">
-                    <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-primary-foreground">
+                <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                  <div className="flex items-start gap-4 justify-end">
+                    <div className="max-w-[85%] rounded-3xl rounded-br-lg bg-primary px-5 py-3 text-primary-foreground shadow-md shadow-primary/20">
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                     </div>
                   </div>
@@ -327,16 +335,16 @@ export function HumanCollaboration({
 
             // Assistant message
             return (
-              <div key={message.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
-                    <Sparkles className="h-3.5 w-3.5 text-white" />
+              <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-md shadow-primary/20">
+                    <Sparkles className="h-4 w-4 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-foreground">优化助手</span>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm font-medium text-foreground">优化助手</span>
                     </div>
-                    <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                    <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
                       {message.content}
                     </div>
                   </div>
@@ -345,17 +353,17 @@ export function HumanCollaboration({
             )
           })}
           
-          {/* Typing indicator when processing */}
+          {/* Typing indicator */}
           {isProcessing && (
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="flex items-start gap-3">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
-                  <Sparkles className="h-3.5 w-3.5 text-white" />
+            <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+              <div className="flex items-start gap-4">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-md shadow-primary/20">
+                  <Sparkles className="h-4 w-4 text-white" />
                 </div>
-                <div className="flex items-center gap-1.5 py-2">
-                  <div className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:-0.3s]" />
-                  <div className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:-0.15s]" />
-                  <div className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" />
+                <div className="flex items-center gap-2 py-3 px-4 bg-muted/30 rounded-2xl">
+                  <div className="h-2 w-2 rounded-full bg-primary/40 animate-bounce [animation-delay:-0.3s]" />
+                  <div className="h-2 w-2 rounded-full bg-primary/40 animate-bounce [animation-delay:-0.15s]" />
+                  <div className="h-2 w-2 rounded-full bg-primary/40 animate-bounce" />
                 </div>
               </div>
             </div>
@@ -363,20 +371,20 @@ export function HumanCollaboration({
         </div>
       </div>
 
-      {/* Input Area - Cursor Style */}
-      <div className="shrink-0 border-t bg-background/80 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto p-4">
+      {/* Input Area - Gemini Style */}
+      <div className="shrink-0 bg-transparent">
+        <div className="max-w-2xl mx-auto p-5">
           <div 
             className={cn(
-              "relative flex items-end gap-2 rounded-2xl border bg-background shadow-sm transition-all duration-200",
+              "relative flex items-end gap-3 rounded-3xl bg-card shadow-lg transition-all duration-300",
               isFocused 
-                ? "border-primary/50 ring-2 ring-primary/20" 
-                : "border-border hover:border-muted-foreground/30"
+                ? "shadow-xl ring-2 ring-primary/20" 
+                : "shadow-md hover:shadow-lg"
             )}
           >
             <textarea
               ref={textareaRef}
-              placeholder="发送消息..."
+              placeholder="输入消息..."
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onFocus={() => setIsFocused(true)}
@@ -388,26 +396,26 @@ export function HumanCollaboration({
                 }
               }}
               rows={1}
-              className="flex-1 resize-none bg-transparent px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px]"
-              style={{ minHeight: "44px" }}
+              className="flex-1 resize-none bg-transparent px-5 py-4 text-sm placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px]"
+              style={{ minHeight: "52px" }}
             />
-            <div className="flex items-center gap-1 pr-2 pb-2">
+            <div className="flex items-center gap-2 pr-3 pb-3">
               <Button
                 size="icon"
                 className={cn(
-                  "h-8 w-8 rounded-xl transition-all duration-200",
+                  "h-10 w-10 rounded-full transition-all duration-300 shadow-sm",
                   chatInput.trim() 
-                    ? "bg-primary hover:bg-primary/90 text-primary-foreground" 
-                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground hover:shadow-md hover:scale-105" 
+                    : "bg-muted/60 text-muted-foreground cursor-not-allowed"
                 )}
                 onClick={handleSendChat}
                 disabled={!chatInput.trim()}
               >
-                <ArrowUp className="h-4 w-4" />
+                <ArrowUp className="h-5 w-5" />
               </Button>
             </div>
           </div>
-          <p className="text-center text-[10px] text-muted-foreground mt-2">
+          <p className="text-center text-[11px] text-muted-foreground/60 mt-3">
             按 Enter 发送，Shift + Enter 换行
           </p>
         </div>
