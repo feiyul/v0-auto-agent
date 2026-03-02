@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { WorkflowDiagram } from "@/components/workflow-diagram"
 import { HumanCollaboration } from "@/components/human-collaboration"
 import { LogsReportsTabs } from "@/components/logs-reports-tabs"
@@ -41,10 +41,13 @@ export default function HomePage() {
   const [reports, setReports] = useState<ReportSection[]>([])
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
+  const logIdCounter = useRef(0)
+  const reportIdCounter = useRef(0)
 
   const addLog = (step: WorkflowStep, message: string, type: LogEntry["type"] = "info") => {
+    logIdCounter.current += 1
     const newLog: LogEntry = {
-      id: Date.now().toString(),
+      id: `log-${Date.now()}-${logIdCounter.current}`,
       timestamp: new Date(),
       step,
       message,
@@ -54,8 +57,9 @@ export default function HomePage() {
   }
 
   const addReport = (step: WorkflowStep, title: string, content: string) => {
+    reportIdCounter.current += 1
     const newReport: ReportSection = {
-      id: Date.now().toString(),
+      id: `report-${Date.now()}-${reportIdCounter.current}`,
       title,
       step,
       content,
