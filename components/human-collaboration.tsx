@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { CheckCircle2, Edit3, AlertCircle, Sparkles, ArrowUp } from "lucide-react"
+import { CheckCircle2, Edit3, AlertCircle, Sparkles, ArrowUp, MessageSquare, ListChecks } from "lucide-react"
 import type { PendingTask, WorkflowStep } from "@/app/page"
 
 interface HumanCollaborationProps {
@@ -26,6 +26,8 @@ interface ChatMessage {
   isEditing?: boolean
 }
 
+type InteractionMode = "chat" | "form"
+
 const stepLabels: Record<WorkflowStep, string> = {
   idle: "待开始",
   analysis: "场景分析",
@@ -43,6 +45,7 @@ export function HumanCollaboration({
   isProcessing,
 }: HumanCollaborationProps) {
   const [mounted, setMounted] = useState(false)
+  const [mode, setMode] = useState<InteractionMode>("chat")
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState("")
   const [taskInputs, setTaskInputs] = useState<Record<string, string>>({})
@@ -170,25 +173,25 @@ export function HumanCollaboration({
     setEditingTaskId(editingTaskId === taskId ? null : taskId)
   }
 
-  const renderTaskCard = (task: PendingTask & { completed?: boolean; selectedOption?: string }) => {
+  const renderTaskCard = (task: PendingTask & { completed?: boolean; selectedOption?: string }, compact = false) => {
     const isCompleted = task.completed
     const isEditing = editingTaskId === task.id
 
     return (
       <Card
         className={cn(
-          "w-full border-0 shadow-sm transition-all duration-300 rounded-3xl overflow-hidden",
+          "w-full border shadow-sm transition-all duration-300 rounded-2xl overflow-hidden",
           isCompleted
-            ? "bg-gradient-to-br from-emerald-50 to-teal-50/50"
-            : "bg-gradient-to-br from-amber-50/80 to-orange-50/50"
+            ? "bg-gradient-to-br from-emerald-50 to-teal-50/50 border-emerald-200/50"
+            : "bg-gradient-to-br from-amber-50/80 to-orange-50/50 border-amber-200/50"
         )}
       >
-        <CardHeader className="pb-2 pt-4 px-5">
+        <CardHeader className={cn("pb-2 px-4", compact ? "pt-3" : "pt-4")}>
           <div className="flex items-center justify-between">
             <Badge
               variant="secondary"
               className={cn(
-                "text-[10px] font-medium px-3 py-1 rounded-full border-0",
+                "text-[10px] font-medium px-2.5 py-0.5 rounded-full border-0",
                 isCompleted 
                   ? "bg-emerald-100/80 text-emerald-700" 
                   : "bg-amber-100/80 text-amber-700"
@@ -197,16 +200,16 @@ export function HumanCollaboration({
               {isCompleted ? "已确认" : stepLabels[task.step]}
             </Badge>
             {isCompleted ? (
-              <div className="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <div className="h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
               </div>
             ) : (
-              <div className="h-6 w-6 rounded-full bg-amber-100 flex items-center justify-center">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
+              <div className="h-5 w-5 rounded-full bg-amber-100 flex items-center justify-center">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
               </div>
             )}
           </div>
-          <CardTitle className="text-sm font-semibold mt-3 text-foreground/90">{task.title}</CardTitle>
+          <CardTitle className={cn("font-semibold mt-2 text-foreground", compact ? "text-xs" : "text-sm")}>{task.title}</CardTitle>
           <CardDescription className="text-xs text-muted-foreground leading-relaxed mt-1">
             {task.description}
           </CardDescription>
@@ -214,9 +217,9 @@ export function HumanCollaboration({
         
         {!isCompleted && (
           <>
-            <CardContent className="space-y-3 pt-0 px-5 pb-2">
+            <CardContent className="space-y-2 pt-0 px-4 pb-2">
               {(task.requiresInput || isEditing) && (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                     {task.inputLabel || "补充说明"}
                   </label>
@@ -229,23 +232,23 @@ export function HumanCollaboration({
                         [task.id]: e.target.value,
                       }))
                     }
-                    className="min-h-[70px] resize-none text-xs bg-white/60 border-0 rounded-2xl shadow-inner focus-visible:ring-1 focus-visible:ring-primary/30"
+                    className="min-h-[60px] resize-none text-xs bg-white/60 border-border/50 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/30"
                   />
                 </div>
               )}
             </CardContent>
             
-            <CardFooter className="flex flex-wrap gap-2 px-5 pb-4 pt-1">
+            <CardFooter className="flex flex-wrap gap-1.5 px-4 pb-3 pt-1">
               {task.options?.map((option) => (
                 <Button
                   key={option}
                   variant={option.includes("确认") ? "default" : "secondary"}
                   size="sm"
                   className={cn(
-                    "text-[11px] h-8 px-4 rounded-full transition-all",
+                    "text-[11px] h-7 px-3 rounded-full transition-all",
                     option.includes("确认") 
                       ? "shadow-sm hover:shadow" 
-                      : "bg-white/60 hover:bg-white/80"
+                      : "bg-white/60 hover:bg-white/80 border-border/30"
                   )}
                   onClick={() => handleTaskConfirm(task.id, option)}
                 >
@@ -256,10 +259,10 @@ export function HumanCollaboration({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="ml-auto text-[11px] h-8 text-muted-foreground hover:text-foreground rounded-full"
+                  className="ml-auto text-[11px] h-7 text-muted-foreground hover:text-foreground rounded-full"
                   onClick={() => toggleEditMode(task.id)}
                 >
-                  <Edit3 className="mr-1.5 h-3 w-3" />
+                  <Edit3 className="mr-1 h-3 w-3" />
                   {isEditing ? "收起" : "修改"}
                 </Button>
               )}
@@ -268,13 +271,191 @@ export function HumanCollaboration({
         )}
         
         {isCompleted && task.selectedOption && (
-          <CardContent className="px-5 pb-4 pt-0">
+          <CardContent className="px-4 pb-3 pt-0">
             <p className="text-[11px] text-muted-foreground">
               已选择：<span className="font-medium text-foreground/80">{task.selectedOption}</span>
             </p>
           </CardContent>
         )}
       </Card>
+    )
+  }
+
+  // Form Mode View
+  const renderFormMode = () => {
+    const activeTasks = pendingTasks.filter(t => !(t as PendingTask & { completed?: boolean }).completed)
+    const completedTasks = pendingTasks.filter(t => (t as PendingTask & { completed?: boolean }).completed)
+
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
+          <div className="space-y-4">
+            {activeTasks.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">待处理任务</h3>
+                {activeTasks.map((task) => (
+                  <div key={task.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {renderTaskCard(task as PendingTask & { completed?: boolean; selectedOption?: string }, true)}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {completedTasks.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">已完成任务</h3>
+                {completedTasks.map((task) => (
+                  <div key={task.id} className="opacity-70">
+                    {renderTaskCard(task as PendingTask & { completed?: boolean; selectedOption?: string }, true)}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {activeTasks.length === 0 && completedTasks.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                  <ListChecks className="h-6 w-6 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm text-muted-foreground">暂无待处理任务</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">启动优化流程后，需要确认的任务将显示在这里</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Chat Mode View
+  const renderChatMode = () => {
+    return (
+      <div className="flex h-full flex-col">
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto" ref={scrollRef}>
+          <div className="max-w-2xl mx-auto px-5 py-6 space-y-6">
+            {chatMessages.map((message) => {
+              // Task card
+              if (message.taskCard) {
+                return (
+                  <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-sm shadow-amber-500/20">
+                        <Sparkles className="h-3.5 w-3.5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-medium text-foreground">优化助手</span>
+                          <span className="text-xs text-muted-foreground">需要确认</span>
+                        </div>
+                        {renderTaskCard(message.taskCard as PendingTask & { completed?: boolean; selectedOption?: string })}
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              // User message
+              if (message.role === "user") {
+                return (
+                  <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                    <div className="flex items-start gap-3 justify-end">
+                      <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-primary-foreground shadow-sm shadow-primary/20">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              // Assistant message
+              return (
+                <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-sm shadow-primary/20">
+                      <Sparkles className="h-3.5 w-3.5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-sm font-medium text-foreground">优化助手</span>
+                      </div>
+                      <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
+                        {message.content}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+            
+            {/* Typing indicator */}
+            {isProcessing && (
+              <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-sm shadow-primary/20">
+                    <Sparkles className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div className="flex items-center gap-1.5 py-2 px-3 bg-muted/40 rounded-xl">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary/50 animate-bounce [animation-delay:-0.3s]" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary/50 animate-bounce [animation-delay:-0.15s]" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary/50 animate-bounce" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Input Area */}
+        <div className="shrink-0 bg-transparent">
+          <div className="max-w-2xl mx-auto px-5 pb-4">
+            <div 
+              className={cn(
+                "relative flex items-end gap-2 rounded-2xl border bg-card transition-all duration-200",
+                isFocused 
+                  ? "border-primary/50 shadow-md ring-1 ring-primary/10" 
+                  : "border-border shadow-sm hover:border-border/80 hover:shadow"
+              )}
+            >
+              <textarea
+                ref={textareaRef}
+                placeholder="输入消息..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSendChat()
+                  }
+                }}
+                rows={1}
+                className="flex-1 resize-none bg-transparent px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px]"
+                style={{ minHeight: "44px" }}
+              />
+              <div className="flex items-center gap-2 pr-2 pb-2">
+                <Button
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 rounded-full transition-all duration-200",
+                    chatInput.trim() 
+                      ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow" 
+                      : "bg-muted text-muted-foreground cursor-not-allowed"
+                  )}
+                  onClick={handleSendChat}
+                  disabled={!chatInput.trim()}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <p className="text-center text-[11px] text-muted-foreground mt-2">
+              按 Enter 发送，Shift + Enter 换行
+            </p>
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -295,130 +476,44 @@ export function HumanCollaboration({
   }
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-background to-muted/20">
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto" ref={scrollRef}>
-        <div className="max-w-2xl mx-auto px-5 py-8 space-y-8">
-          {chatMessages.map((message) => {
-            // Task card
-            if (message.taskCard) {
-              return (
-                <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-md shadow-amber-500/20">
-                      <Sparkles className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-sm font-medium text-foreground">优化助手</span>
-                        <span className="text-xs text-muted-foreground">需要确认</span>
-                      </div>
-                      {renderTaskCard(message.taskCard as PendingTask & { completed?: boolean; selectedOption?: string })}
-                    </div>
-                  </div>
-                </div>
-              )
-            }
-
-            // User message
-            if (message.role === "user") {
-              return (
-                <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
-                  <div className="flex items-start gap-4 justify-end">
-                    <div className="max-w-[85%] rounded-3xl rounded-br-lg bg-primary px-5 py-3 text-primary-foreground shadow-md shadow-primary/20">
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-                    </div>
-                  </div>
-                </div>
-              )
-            }
-
-            // Assistant message
-            return (
-              <div key={message.id} className="animate-in fade-in slide-in-from-bottom-3 duration-500">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-md shadow-primary/20">
-                    <Sparkles className="h-4 w-4 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-medium text-foreground">优化助手</span>
-                    </div>
-                    <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
-                      {message.content}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-          
-          {/* Typing indicator */}
-          {isProcessing && (
-            <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary shadow-md shadow-primary/20">
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
-                <div className="flex items-center gap-2 py-3 px-4 bg-muted/30 rounded-2xl">
-                  <div className="h-2 w-2 rounded-full bg-primary/40 animate-bounce [animation-delay:-0.3s]" />
-                  <div className="h-2 w-2 rounded-full bg-primary/40 animate-bounce [animation-delay:-0.15s]" />
-                  <div className="h-2 w-2 rounded-full bg-primary/40 animate-bounce" />
-                </div>
-              </div>
-            </div>
-          )}
+    <div className="flex h-full flex-col bg-gradient-to-b from-background to-muted/10">
+      {/* Mode Toggle Header */}
+      <div className="shrink-0 border-b border-border/50 bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center justify-center gap-1 p-2">
+          <Button
+            variant={mode === "chat" ? "secondary" : "ghost"}
+            size="sm"
+            className={cn(
+              "h-8 px-4 rounded-full text-xs font-medium transition-all",
+              mode === "chat" 
+                ? "bg-primary/10 text-primary border border-primary/20" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={() => setMode("chat")}
+          >
+            <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+            对话模式
+          </Button>
+          <Button
+            variant={mode === "form" ? "secondary" : "ghost"}
+            size="sm"
+            className={cn(
+              "h-8 px-4 rounded-full text-xs font-medium transition-all",
+              mode === "form" 
+                ? "bg-primary/10 text-primary border border-primary/20" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={() => setMode("form")}
+          >
+            <ListChecks className="mr-1.5 h-3.5 w-3.5" />
+            表单模式
+          </Button>
         </div>
       </div>
 
-      {/* Input Area - Gemini Style */}
-      <div className="shrink-0 bg-transparent">
-        <div className="max-w-2xl mx-auto p-5">
-          <div 
-            className={cn(
-              "relative flex items-end gap-3 rounded-[28px] border border-border/60 bg-card transition-all duration-300",
-              isFocused 
-                ? "border-primary/40 shadow-lg ring-2 ring-primary/10" 
-                : "shadow-sm hover:border-border hover:shadow-md"
-            )}
-          >
-            <textarea
-              ref={textareaRef}
-              placeholder="输入消息..."
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSendChat()
-                }
-              }}
-              rows={1}
-              className="flex-1 resize-none bg-transparent px-5 py-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 max-h-[200px]"
-              style={{ minHeight: "52px" }}
-            />
-            <div className="flex items-center gap-2 pr-3 pb-3">
-              <Button
-                size="icon"
-                className={cn(
-                  "h-10 w-10 rounded-full transition-all duration-300 shadow-sm",
-                  chatInput.trim() 
-                    ? "bg-primary hover:bg-primary/90 text-primary-foreground hover:shadow-md hover:scale-105" 
-                    : "bg-muted/60 text-muted-foreground cursor-not-allowed"
-                )}
-                onClick={handleSendChat}
-                disabled={!chatInput.trim()}
-              >
-                <ArrowUp className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-          <p className="text-center text-[11px] text-muted-foreground mt-3">
-            按 Enter 发送，Shift + Enter 换行
-          </p>
-        </div>
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
+        {mode === "chat" ? renderChatMode() : renderFormMode()}
       </div>
     </div>
   )
