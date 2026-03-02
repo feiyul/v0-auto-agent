@@ -343,78 +343,58 @@ export function HumanCollaboration({
       : sessionIds.trim().length > 0
 
     return (
-      <Card className="border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-primary/5 shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="pb-4 pt-5 px-5">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-              <Play className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-base font-semibold text-foreground">开始优化</CardTitle>
-              <CardDescription className="text-xs text-muted-foreground mt-0.5">配置优化参数并启动流程</CardDescription>
+      <Card className="border border-border/40 bg-card shadow-sm rounded-2xl overflow-hidden">
+        <CardHeader className="pb-3 pt-4 px-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Play className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-semibold text-foreground">开始优化</CardTitle>
+                <CardDescription className="text-[11px] text-muted-foreground">配置优化参数并启动流程</CardDescription>
+              </div>
             </div>
           </div>
         </CardHeader>
         
-        <CardContent className="space-y-5 px-5 pb-5">
+        <CardContent className="space-y-4 px-4 pb-4">
           {/* Optimization Method */}
-          <div className="space-y-3">
-            <Label className="text-xs font-semibold text-foreground">优化方式</Label>
+          <div className="space-y-2">
+            <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">优化方式</Label>
             <RadioGroup
               value={optimizationMethod}
               onValueChange={(v) => setOptimizationMethod(v as OptimizationMethod)}
-              className="grid grid-cols-2 gap-3"
+              className="grid grid-cols-2 gap-2"
             >
               <label
                 className={cn(
-                  "flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all",
+                  "flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all",
                   optimizationMethod === "daily-report" 
-                    ? "border-primary bg-primary/5 shadow-sm" 
-                    : "border-border/50 hover:border-border hover:bg-muted/30"
+                    ? "border-primary/50 bg-primary/5" 
+                    : "border-border/40 hover:border-border hover:bg-muted/30"
                 )}
               >
                 <RadioGroupItem value="daily-report" id="daily-report" className="sr-only" />
-                <div className={cn(
-                  "h-9 w-9 rounded-lg flex items-center justify-center",
-                  optimizationMethod === "daily-report" ? "bg-primary/15" : "bg-muted/50"
-                )}>
-                  <Calendar className={cn(
-                    "h-4 w-4",
-                    optimizationMethod === "daily-report" ? "text-primary" : "text-muted-foreground"
-                  )} />
-                </div>
+                <Calendar className={cn("h-4 w-4 shrink-0", optimizationMethod === "daily-report" ? "text-primary" : "text-muted-foreground")} />
                 <div>
-                  <p className={cn(
-                    "text-xs font-medium",
-                    optimizationMethod === "daily-report" ? "text-primary" : "text-foreground"
-                  )}>基于日报优化</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">分析日报数据</p>
+                  <p className={cn("text-xs font-medium", optimizationMethod === "daily-report" ? "text-primary" : "text-foreground")}>基于日报</p>
+                  <p className="text-[10px] text-muted-foreground">分析日报数据</p>
                 </div>
               </label>
               <label
                 className={cn(
-                  "flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all",
+                  "flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all",
                   optimizationMethod === "badcase" 
-                    ? "border-primary bg-primary/5 shadow-sm" 
-                    : "border-border/50 hover:border-border hover:bg-muted/30"
+                    ? "border-primary/50 bg-primary/5" 
+                    : "border-border/40 hover:border-border hover:bg-muted/30"
                 )}
               >
                 <RadioGroupItem value="badcase" id="badcase" className="sr-only" />
-                <div className={cn(
-                  "h-9 w-9 rounded-lg flex items-center justify-center",
-                  optimizationMethod === "badcase" ? "bg-primary/15" : "bg-muted/50"
-                )}>
-                  <Database className={cn(
-                    "h-4 w-4",
-                    optimizationMethod === "badcase" ? "text-primary" : "text-muted-foreground"
-                  )} />
-                </div>
+                <Database className={cn("h-4 w-4 shrink-0", optimizationMethod === "badcase" ? "text-primary" : "text-muted-foreground")} />
                 <div>
-                  <p className={cn(
-                    "text-xs font-medium",
-                    optimizationMethod === "badcase" ? "text-primary" : "text-foreground"
-                  )}>基于BadCase</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">分析具体案例</p>
+                  <p className={cn("text-xs font-medium", optimizationMethod === "badcase" ? "text-primary" : "text-foreground")}>BadCase</p>
+                  <p className="text-[10px] text-muted-foreground">分析具体案例</p>
                 </div>
               </label>
             </RadioGroup>
@@ -422,23 +402,23 @@ export function HumanCollaboration({
 
           {/* Daily Report Params */}
           {optimizationMethod === "daily-report" && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="space-y-2">
+            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground">日期</Label>
                 <Input
                   type="date"
                   value={dailyDate}
                   onChange={(e) => setDailyDate(e.target.value)}
-                  className="h-10 text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30"
+                  className="h-9 text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground">业务场景</Label>
                 <Input
-                  placeholder="例如：退款、配送、投诉..."
+                  placeholder="例如：退款、配送..."
                   value={businessScenario}
                   onChange={(e) => setBusinessScenario(e.target.value)}
-                  className="h-10 text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30"
+                  className="h-9 text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
             </div>
@@ -446,8 +426,8 @@ export function HumanCollaboration({
 
           {/* BadCase Params */}
           {optimizationMethod === "badcase" && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="space-y-2">
+            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground">
                   SessionId集合 <span className="text-destructive">*</span>
                 </Label>
@@ -455,10 +435,10 @@ export function HumanCollaboration({
                   placeholder="输入SessionId，多个用逗号或换行分隔..."
                   value={sessionIds}
                   onChange={(e) => setSessionIds(e.target.value)}
-                  className="min-h-[90px] text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
+                  className="min-h-[72px] text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
                   人工问题分析
                   <span className="text-muted-foreground font-normal text-[10px]">（可选）</span>
@@ -467,23 +447,21 @@ export function HumanCollaboration({
                   placeholder="输入您对这些Case的初步分析..."
                   value={manualAnalysis}
                   onChange={(e) => setManualAnalysis(e.target.value)}
-                  className="min-h-[70px] text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
+                  className="min-h-[60px] text-sm rounded-xl border-border/50 bg-background focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
                 />
               </div>
             </div>
           )}
-        </CardContent>
 
-        <CardFooter className="px-5 pb-5 pt-0">
           <Button
             onClick={handleStartOptimization}
             disabled={!canStart || isProcessing}
-            className="w-full h-11 rounded-xl gap-2 text-sm font-medium shadow-sm hover:shadow transition-all"
+            className="w-full h-9 rounded-xl gap-2 text-sm font-medium"
           >
-            <Play className="h-4 w-4" />
+            <Play className="h-3.5 w-3.5" />
             开始优化
           </Button>
-        </CardFooter>
+        </CardContent>
       </Card>
     )
   }
