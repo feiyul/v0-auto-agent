@@ -17,6 +17,7 @@ import {
   BASE_DIST,
 } from "@/lib/report-data"
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import {
   ArrowLeft,
   User,
@@ -130,10 +131,10 @@ function DiffBlock({ search, replace }: { search: string; replace: string }) {
       </div>
       <div className="grid grid-cols-2 divide-x divide-border max-h-80 overflow-hidden">
         <div className="overflow-y-auto p-4 bg-red-50/40 text-xs text-red-900">
-            <ReactMarkdown components={mdComponents}>{search}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{search}</ReactMarkdown>
         </div>
         <div className="overflow-y-auto p-4 bg-green-50/40 text-xs text-green-900">
-            <ReactMarkdown components={mdComponents}>{replace}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{replace}</ReactMarkdown>
         </div>
       </div>
     </div>
@@ -671,7 +672,7 @@ export default function ReportPage() {
                         <DiffBlock key={idx} search={frag.search} replace={frag.replace} />
                       ) : (
                         <div key={idx} className="text-xs text-foreground/80 mb-4">
-                          <ReactMarkdown components={mdComponents}>{frag.content}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{frag.content}</ReactMarkdown>
                         </div>
                       )
                     )}
