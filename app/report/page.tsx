@@ -17,7 +17,6 @@ import {
   BASE_DIST,
 } from "@/lib/report-data"
 import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
 import {
   ArrowLeft,
   User,
@@ -131,10 +130,10 @@ function DiffBlock({ search, replace }: { search: string; replace: string }) {
       </div>
       <div className="grid grid-cols-2 divide-x divide-border max-h-80 overflow-hidden">
         <div className="overflow-y-auto p-4 bg-red-50/40 text-xs text-red-900">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{search}</ReactMarkdown>
+            <ReactMarkdown components={mdComponents}>{search}</ReactMarkdown>
         </div>
         <div className="overflow-y-auto p-4 bg-green-50/40 text-xs text-green-900">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{replace}</ReactMarkdown>
+            <ReactMarkdown components={mdComponents}>{replace}</ReactMarkdown>
         </div>
       </div>
     </div>
@@ -268,7 +267,7 @@ const SUGGESTION_DATA = [
     title: "补充动作完整性要求",
     priority: "最高优先级",
     items: [
-      "在Prompt的ReAct框架中明确要求，所有在回复中声称的业务动作必须以工具调用结果为前提，严禁在未成功调用工具的情况下输出承诺性话术",
+      "在Prompt的ReAct框架中明确要求，所有在回复中声��的业务动作必须以工具调用结果为前提，严禁在未成功调用工具的情况下输出承诺性话术",
       "设定挽留阈值：连续2次转人工即视为挽留失败，强制切换至转人工执行路径",
       "引入话术多样性约束：多轮对话中必须变换安抚角度，避免高度相似句式",
     ],
@@ -672,7 +671,7 @@ export default function ReportPage() {
                         <DiffBlock key={idx} search={frag.search} replace={frag.replace} />
                       ) : (
                         <div key={idx} className="text-xs text-foreground/80 mb-4">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{frag.content}</ReactMarkdown>
+                          <ReactMarkdown components={mdComponents}>{frag.content}</ReactMarkdown>
                         </div>
                       )
                     )}

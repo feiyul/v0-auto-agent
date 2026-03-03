@@ -19,7 +19,6 @@ import {
 import { FileText, Sparkles, GitCompare, Upload, Pencil, X, MessageSquare, TrendingUp } from "lucide-react"
 import type { ReportSection, WorkflowStep, ModificationItem } from "@/app/page"
 import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
 import { REPORT_META, BEST_PROMPT_DIFF, SCORE_TREND, PROMPT_TABS, IMPROVED_CASES, UNCHANGED_CASES, BEST_DIST, BASE_DIST } from "@/lib/report-data"
 
 interface ReportsPanelProps {
@@ -432,12 +431,12 @@ function DiffBlock({ search, replace }: { search: string; replace: string }) {
       <div className="grid grid-cols-2 divide-x divide-border max-h-96 overflow-hidden">
         <div className="overflow-y-auto p-4 bg-red-50/40 diff-search-pane">
           <div className="prompt-doc-content text-red-900">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{search}</ReactMarkdown>
+            <ReactMarkdown components={mdComponents}>{search}</ReactMarkdown>
           </div>
         </div>
         <div className="overflow-y-auto p-4 bg-green-50/40">
           <div className="prompt-doc-content text-green-900">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{replace}</ReactMarkdown>
+            <ReactMarkdown components={mdComponents}>{replace}</ReactMarkdown>
           </div>
         </div>
       </div>
@@ -450,7 +449,7 @@ function SingleBlock({ content }: { content: string }) {
   return (
     <div className="prompt-diff-doc-block mb-4">
       <div className="prompt-doc-content text-foreground/80">
-        <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{content}</ReactMarkdown>
+        <ReactMarkdown components={mdComponents}>{content}</ReactMarkdown>
       </div>
     </div>
   )
@@ -723,7 +722,6 @@ export function LogsReportsTabs({
                         <CardContent className="px-6 pb-6">
                           <div className="prose prose-sm dark:prose-invert max-w-none">
                             <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
                               components={{
                                 h2: ({ children }) => <h2 className="mb-4 mt-6 text-base font-semibold first:mt-0 text-foreground">{children}</h2>,
                                 h3: ({ children }) => <h3 className="mb-3 mt-5 text-sm font-semibold text-foreground/90">{children}</h3>,
@@ -954,7 +952,7 @@ export function LogsReportsTabs({
                       >
                         <div className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
                           <MessageSquare className="h-3.5 w-3.5" />
-                          在 REPLACE（新内容）区域选中文字，可添加修改意见
+                          在 REPLACE（新内容）区域选中文字，���添加修改意见
                         </div>
 
                         {promptDocTabs.map((tab) => (
